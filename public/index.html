@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculator — FeedbackLoop AI Demo</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">🧮</span>
+        <span class="logo-text">Calculator Demo</span>
+      </a>
+      <nav class="nav">
+        <a href="/docs/" class="nav-link">Documentation</a>
+        <a href="https://feedbackloopai.ovh" class="nav-link" target="_blank">Powered by FeedbackLoop AI</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="hero">
+      <h1>Simple Calculator</h1>
+      <p class="subtitle">A demo app with <strong>intentional bugs</strong> — find them and report via the feedback widget!</p>
+    </div>
+
+    <div class="calculator-container">
+      <div class="calculator">
+        <div class="display">
+          <div class="display-expression" id="expression"></div>
+          <div class="display-result" id="result">0</div>
+        </div>
+        <div class="buttons">
+          <button class="btn btn-clear" data-action="clear">C</button>
+          <button class="btn btn-operator" data-action="backspace">⌫</button>
+          <button class="btn btn-operator" data-action="operator" data-value="(">(</button>
+          <button class="btn btn-operator" data-action="operator" data-value=")">)</button>
+
+          <button class="btn btn-number" data-action="number" data-value="7">7</button>
+          <button class="btn btn-number" data-action="number" data-value="8">8</button>
+          <button class="btn btn-number" data-action="number" data-value="9">9</button>
+          <button class="btn btn-operator btn-divide" data-action="operator" data-value="/">÷</button>
+
+          <button class="btn btn-number" data-action="number" data-value="4">4</button>
+          <button class="btn btn-number" data-action="number" data-value="5">5</button>
+          <button class="btn btn-number" data-action="number" data-value="6">6</button>
+          <button class="btn btn-operator btn-multiply" data-action="operator" data-value="*">×</button>
+
+          <button class="btn btn-number" data-action="number" data-value="1">1</button>
+          <button class="btn btn-number" data-action="number" data-value="2">2</button>
+          <button class="btn btn-number" data-action="number" data-value="3">3</button>
+          <button class="btn btn-operator btn-minus" data-action="operator" data-value="-">−</button>
+
+          <button class="btn btn-number" data-action="number" data-value="0">0</button>
+          <button class="btn btn-number" data-action="decimal" data-value=".">.</button>
+          <button class="btn btn-equals" data-action="equals">=</button>
+          <button class="btn btn-operator btn-plus" data-action="operator" data-value="+">+</button>
+        </div>
+      </div>
+
+      <div class="history-panel">
+        <div class="history-header">
+          <h3>History</h3>
+          <button class="history-clear" id="clearHistory">Clear</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <p class="history-empty">No calculations yet</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-cards">
+      <div class="info-card">
+        <h3>🐛 Find Bugs</h3>
+        <p>This calculator has intentional bugs. Try dividing by zero, or adding 0.1 + 0.2. Can you spot them all?</p>
+      </div>
+      <div class="info-card">
+        <h3>💬 Report via Widget</h3>
+        <p>Click the feedback button in the bottom-right corner to report bugs or request features. An AI will qualify your feedback.</p>
+      </div>
+      <div class="info-card">
+        <h3>🔄 Auto-Fix Pipeline</h3>
+        <p>Qualified feedback triggers an autonomous pipeline that generates and deploys fixes automatically.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Demo for <a href="https://feedbackloopai.ovh" target="_blank">FeedbackLoop AI</a> — AI-powered feedback qualification & autonomous fix pipeline</p>
+  </footer>
+
+  <script src="/js/calculator.js"></script>
+  <!-- FeedbackLoop AI Widget — credentials injected at deploy time -->
+  <script id="feedbackloop-widget"></script>
+</body>
+</html>

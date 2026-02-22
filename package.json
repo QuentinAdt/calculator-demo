@@ -1,0 +1,13 @@
+{
+  "name": "calculator-demo",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "docs": "node docs-generator.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
