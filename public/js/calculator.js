@@ -129,8 +129,8 @@ function handleClear() {
   currentInput = '0';
   currentExpression = '';
   lastResult = null;
-  // BUG #2: "C" button does NOT clear the history
-  // It should also call: history = []; renderHistory();
+  history = [];
+  renderHistory();
   updateDisplay();
 }
 
