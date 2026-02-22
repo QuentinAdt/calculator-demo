@@ -2,14 +2,20 @@
  * Calculator — FeedbackLoop AI Demo
  *
  * INTENTIONAL BUGS (for demo purposes):
- * 1. Division by zero shows "NaN" instead of an error message
- * 2. "C" button does NOT clear the history
- * 3. Floating-point imprecision (0.1 + 0.2 = 0.30000000000000004)
+ * (none — all fixed, see CHANGELOG)
  *
  * MISSING FEATURES (for feature requests):
- * - No keyboard shortcuts
  * - No dark/light theme toggle (always dark)
  * - No percentage (%) button
+ *
+ * CHANGELOG:
+ * - Fixed floating-point imprecision: results rounded to 12 significant figures
+ * - Fixed division by zero: shows "Cannot divide by zero" instead of Infinity/NaN
+ * - Implemented Global Reset (AC) vs Current Clear (C): C clears current input; pressing C again when already at default state clears history too
+ * - Fixed history click-to-reuse: typing a digit after selecting a history item now replaces the value instead of appending
+ * - Added keyboard support: digits, operators, Enter/=, Backspace, Escape
+ * - Used event delegation for history list clicks (single listener instead of one per item)
+ * - Added MAX_HISTORY cap (50 entries) to prevent unbounded memory growth
  */
 
 const display = document.getElementById('result');
@@ -22,13 +28,23 @@ let currentExpression = '';
 let history = [];
 let lastResult = null;
 
+const MAX_HISTORY = 50;
+
 function updateDisplay() {
   display.textContent = currentInput;
   expression.textContent = currentExpression;
+  updateClearButton();
+}
+
+function updateClearButton() {
+  const clearBtn = document.querySelector('[data-action="clear"]');
+  const isDefaultState = currentInput === '0' && currentExpression === '' && lastResult === null;
+  clearBtn.textContent = isDefaultState ? 'AC' : 'C';
 }
 
 function addToHistory(expr, result) {
   history.unshift({ expression: expr, result: result });
+  if (history.length > MAX_HISTORY) history.pop();
   renderHistory();
 }
 
@@ -43,17 +59,18 @@ function renderHistory() {
       <div class="res">= ${item.result}</div>
     </div>
   `).join('');
-
-  // Click history item to reuse result
-  historyList.querySelectorAll('.history-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.dataset.index);
-      currentInput = String(history[idx].result);
-      currentExpression = '';
-      updateDisplay();
-    });
-  });
 }
+
+// Event delegation for history clicks — single listener instead of one per item
+historyList.addEventListener('click', (e) => {
+  const item = e.target.closest('.history-item');
+  if (!item) return;
+  const idx = parseInt(item.dataset.index);
+  currentInput = String(history[idx].result);
+  currentExpression = '';
+  lastResult = history[idx].result; // Ensures next digit typed starts a fresh number
+  updateDisplay();
+});
 
 function handleNumber(value) {
   if (lastResult !== null) {
@@ -106,31 +123,42 @@ function handleEquals() {
     .replace(/-/g, '−');
 
   try {
-    // BUG #1: Division by zero — eval returns Infinity, we just show it as-is (NaN/Infinity)
-    // The "correct" behavior would be to show "Cannot divide by zero"
     const result = eval(fullExpr);
 
-    // BUG #3: Floating-point imprecision — we do NOT round the result
-    // 0.1 + 0.2 will show 0.30000000000000004 instead of 0.3
-    const displayResult = String(result);
+    if (!isFinite(result)) {
+      currentInput = 'Cannot divide by zero';
+      currentExpression = '';
+      lastResult = NaN; // Sentinel so next digit starts fresh
+      updateDisplay();
+      return;
+    }
+
+    // Round to 12 significant figures to eliminate floating-point display artifacts
+    const rounded = parseFloat(result.toPrecision(12));
+    const displayResult = String(rounded);
 
     currentInput = displayResult;
     currentExpression = '';
-    lastResult = result;
+    lastResult = rounded;
     addToHistory(displayExpr, displayResult);
   } catch (e) {
     currentInput = 'Error';
     currentExpression = '';
+    lastResult = NaN; // Sentinel so next digit starts fresh
   }
   updateDisplay();
 }
 
 function handleClear() {
+  // Global Reset (AC): if already at default state, also clear history
+  const isDefaultState = currentInput === '0' && currentExpression === '' && lastResult === null;
   currentInput = '0';
   currentExpression = '';
   lastResult = null;
-  // BUG #2: "C" button does NOT clear the history
-  // It should also call: history = []; renderHistory();
+  if (isDefaultState) {
+    history = [];
+    renderHistory();
+  }
   updateDisplay();
 }
 
@@ -164,8 +192,19 @@ document.querySelectorAll('.btn').forEach(btn => {
   });
 });
 
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key >= '0' && e.key <= '9') { e.preventDefault(); handleNumber(e.key); return; }
+  if (e.key === '.') { e.preventDefault(); handleDecimal(); return; }
+  if (['+', '-', '*', '/'].includes(e.key)) { e.preventDefault(); handleOperator(e.key); return; }
+  if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); handleEquals(); return; }
+  if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); handleBackspace(); return; }
+  if (e.key === 'Escape') { e.preventDefault(); handleClear(); return; }
+  if (e.key === '(' || e.key === ')') { e.preventDefault(); handleOperator(e.key); return; }
+});
+
 // Clear history button
-// BUG #2 related: the clear history button works, but the "C" calculator button doesn't clear history
 clearHistoryBtn.addEventListener('click', () => {
   history = [];
   renderHistory();

@@ -46,12 +46,21 @@ function webhookRateLimit(req, res, next) {
   const hits = webhookHits.get(ip) || [];
   const recent = hits.filter(t => now - t < windowMs);
   if (recent.length >= max) {
+    webhookHits.set(ip, recent); // Store cleaned array even when rejecting
     return res.status(429).json({ error: 'Too many requests' });
   }
   recent.push(now);
   webhookHits.set(ip, recent);
   next();
 }
+
+// Periodic cleanup: remove stale entries to prevent unbounded Map growth
+setInterval(() => {
+  const cutoff = Date.now() - 60000;
+  for (const [ip, hits] of webhookHits) {
+    if (hits.every(t => t < cutoff)) webhookHits.delete(ip);
+  }
+}, 300000);
 
 // Webhook endpoint
 app.post('/api/webhook', webhookRateLimit, (req, res) => {
