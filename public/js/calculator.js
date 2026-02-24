@@ -29,6 +29,7 @@ function updateDisplay() {
 
 function addToHistory(expr, result) {
   history.unshift({ expression: expr, result: result });
+  if (history.length > 50) history.length = 50;
   renderHistory();
 }
 
@@ -43,17 +44,17 @@ function renderHistory() {
       <div class="res">= ${item.result}</div>
     </div>
   `).join('');
-
-  // Click history item to reuse result
-  historyList.querySelectorAll('.history-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.dataset.index);
-      currentInput = String(history[idx].result);
-      currentExpression = '';
-      updateDisplay();
-    });
-  });
 }
+
+// Single delegated listener — set up once, avoids re-attaching on every render
+historyList.addEventListener('click', (e) => {
+  const item = e.target.closest('.history-item');
+  if (!item) return;
+  const idx = parseInt(item.dataset.index);
+  currentInput = String(history[idx].result);
+  currentExpression = '';
+  updateDisplay();
+});
 
 function handleNumber(value) {
   if (lastResult !== null) {

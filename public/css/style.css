@@ -237,7 +237,7 @@ body {
   cursor: pointer;
   transition: border-color 0.2s;
 }
-.history-item:hover { border-color: var(--accent); }
+.history-item:hover { border-color: var(--accent); background: var(--bg-card); }
 .history-item .expr {
   font-family: var(--font-mono);
   font-size: 0.85rem;

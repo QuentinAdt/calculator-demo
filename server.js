@@ -38,14 +38,25 @@ app.use('/api/webhook', express.json({
 
 // Rate limiting for webhook (simple in-memory)
 const webhookHits = new Map();
+const RATE_WINDOW_MS = 60000;
+const RATE_MAX = 10;
+
+// Prune stale entries every minute to prevent unbounded Map growth
+setInterval(() => {
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  for (const [ip, hits] of webhookHits) {
+    const recent = hits.filter(t => t > cutoff);
+    if (recent.length === 0) webhookHits.delete(ip);
+    else webhookHits.set(ip, recent);
+  }
+}, RATE_WINDOW_MS).unref();
+
 function webhookRateLimit(req, res, next) {
   const ip = req.ip || req.connection.remoteAddress;
   const now = Date.now();
-  const windowMs = 60000;
-  const max = 10;
   const hits = webhookHits.get(ip) || [];
-  const recent = hits.filter(t => now - t < windowMs);
-  if (recent.length >= max) {
+  const recent = hits.filter(t => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_MAX) {
     return res.status(429).json({ error: 'Too many requests' });
   }
   recent.push(now);
