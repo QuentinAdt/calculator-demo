@@ -42,16 +42,6 @@ function renderHistory() {
       <div class="res">= ${item.result}</div>
     </div>
   `).join('');
-
-  // Click history item to reuse result
-  historyList.querySelectorAll('.history-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.dataset.index);
-      currentInput = String(history[idx].result);
-      currentExpression = '';
-      updateDisplay();
-    });
-  });
 }
 
 function handleNumber(value) {
@@ -161,6 +151,16 @@ document.querySelectorAll('.btn').forEach(btn => {
       case 'backspace': handleBackspace(); break;
     }
   });
+});
+
+// Click history item to reuse result (event delegation — single listener for all items)
+historyList.addEventListener('click', (e) => {
+  const item = e.target.closest('.history-item');
+  if (!item) return;
+  const idx = parseInt(item.dataset.index);
+  currentInput = String(history[idx].result);
+  currentExpression = '';
+  updateDisplay();
 });
 
 // Clear history button
