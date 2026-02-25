@@ -7,7 +7,6 @@
  * 3. Floating-point imprecision (0.1 + 0.2 = 0.30000000000000004)
  *
  * MISSING FEATURES (for feature requests):
- * - No keyboard shortcuts
  * - No dark/light theme toggle (always dark)
  * - No percentage (%) button
  */
@@ -169,6 +168,32 @@ document.querySelectorAll('.btn').forEach(btn => {
 clearHistoryBtn.addEventListener('click', () => {
   history = [];
   renderHistory();
+});
+
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+  if (e.key >= '0' && e.key <= '9') {
+    handleNumber(e.key);
+  } else if (e.key === '.') {
+    handleDecimal();
+  } else if (e.key === '+') {
+    handleOperator('+');
+  } else if (e.key === '-') {
+    handleOperator('-');
+  } else if (e.key === '*') {
+    handleOperator('*');
+  } else if (e.key === '/') {
+    e.preventDefault(); // prevent browser quick-find
+    handleOperator('/');
+  } else if (e.key === 'Enter' || e.key === '=') {
+    handleEquals();
+  } else if (e.key === 'Backspace') {
+    handleBackspace();
+  } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+    handleClear();
+  } else if (e.key === '(' || e.key === ')') {
+    handleOperator(e.key);
+  }
 });
 
 updateDisplay();
