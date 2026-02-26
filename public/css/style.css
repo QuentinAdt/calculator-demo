@@ -332,5 +332,12 @@ body {
     grid-template-columns: 1fr;
   }
   .hero h1 { font-size: 1.6rem; }
-  .nav { display: none; }
+  .header-inner {
+    flex-direction: column;
+    height: auto;
+    padding: 12px 0;
+    gap: 6px;
+  }
+  .nav { gap: 16px; }
+  .nav-link { font-size: 0.8rem; }
 }
