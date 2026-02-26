@@ -16,6 +16,67 @@ const expression = document.getElementById('expression');
 const historyList = document.getElementById('historyList');
 const clearHistoryBtn = document.getElementById('clearHistory');
 
+/**
+ * Safe math expression evaluator — replaces eval() to prevent arbitrary code execution.
+ * Supports: numbers, +, -, *, /, parentheses, and unary minus.
+ * Preserves standard JS math behavior (Infinity for div-by-zero, IEEE 754 floats).
+ */
+function safeEval(expr) {
+  const tokens = [];
+  const re = /(\d+\.?\d*|\.\d+|[+\-*/()])/g;
+  let m;
+  while ((m = re.exec(expr)) !== null) tokens.push(m[1]);
+
+  let pos = 0;
+  function peek() { return tokens[pos]; }
+  function consume() { return tokens[pos++]; }
+
+  // expression = term (('+' | '-') term)*
+  function parseExpr() {
+    let val = parseTerm();
+    while (peek() === '+' || peek() === '-') {
+      const op = consume();
+      const right = parseTerm();
+      val = op === '+' ? val + right : val - right;
+    }
+    return val;
+  }
+
+  // term = factor (('*' | '/') factor)*
+  function parseTerm() {
+    let val = parseFactor();
+    while (peek() === '*' || peek() === '/') {
+      const op = consume();
+      const right = parseFactor();
+      val = op === '*' ? val * right : val / right;
+    }
+    return val;
+  }
+
+  // factor = ['-'] (NUMBER | '(' expression ')')
+  function parseFactor() {
+    if (peek() === '-') {
+      consume();
+      return -parseFactor();
+    }
+    if (peek() === '(') {
+      consume();
+      const val = parseExpr();
+      if (peek() === ')') consume();
+      return val;
+    }
+    const token = consume();
+    if (token === undefined) throw new Error('Unexpected end');
+    const num = Number(token);
+    if (isNaN(num)) throw new Error('Invalid token: ' + token);
+    return num;
+  }
+
+  const result = parseExpr();
+  if (pos < tokens.length) throw new Error('Unexpected token: ' + tokens[pos]);
+  return result;
+}
+
 let currentInput = '0';
 let currentExpression = '';
 let history = [];
@@ -128,9 +189,9 @@ function handleEquals() {
     .replace(/-/g, '−');
 
   try {
-    // BUG #1: Division by zero — eval returns Infinity, we just show it as-is (NaN/Infinity)
+    // BUG #1: Division by zero — safeEval returns Infinity, we just show it as-is (NaN/Infinity)
     // The "correct" behavior would be to show "Cannot divide by zero"
-    const result = eval(fullExpr);
+    const result = safeEval(fullExpr);
 
     // BUG #3: Floating-point imprecision — we do NOT round the result
     // 0.1 + 0.2 will show 0.30000000000000004 instead of 0.3
