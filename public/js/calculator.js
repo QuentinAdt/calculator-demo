@@ -79,8 +79,25 @@ function safeEval(expr) {
 
 let currentInput = '0';
 let currentExpression = '';
-let history = [];
+let history = loadHistory();
 let lastResult = null;
+
+function loadHistory() {
+  try {
+    const saved = localStorage.getItem('calcHistory');
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistory() {
+  try {
+    localStorage.setItem('calcHistory', JSON.stringify(history));
+  } catch (e) {
+    // localStorage full or unavailable — silently continue
+  }
+}
 
 function updateDisplay() {
   display.textContent = currentInput;
@@ -99,6 +116,7 @@ function updateDisplay() {
 
 function addToHistory(expr, result) {
   history.unshift({ expression: expr, result: result });
+  saveHistory();
   // Remove "No calculations yet" placeholder if present
   const empty = historyList.querySelector('.history-empty');
   if (empty) empty.remove();
@@ -261,6 +279,7 @@ historyList.addEventListener('click', (e) => {
 // BUG #2 related: the clear history button works, but the "C" calculator button doesn't clear history
 clearHistoryBtn.addEventListener('click', () => {
   history = [];
+  saveHistory();
   renderHistory();
 });
 
@@ -290,4 +309,5 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+renderHistory();
 updateDisplay();
