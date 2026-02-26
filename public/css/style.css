@@ -297,6 +297,12 @@ body {
 }
 .footer a:hover { text-decoration: underline; }
 
+/* Keyboard flash — brief highlight when a calculator key is pressed */
+.btn.btn-flash {
+  filter: brightness(1.4);
+  transform: scale(0.95);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .nav-link,
@@ -306,7 +312,8 @@ body {
   .history-item {
     transition: none;
   }
-  .btn:active {
+  .btn:active,
+  .btn.btn-flash {
     transform: none;
   }
 }

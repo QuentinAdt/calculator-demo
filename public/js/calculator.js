@@ -298,6 +298,18 @@ clearHistoryBtn.addEventListener('click', () => {
   renderHistory();
 });
 
+// Visual feedback when a key maps to a calculator button
+function flashButton(action, value) {
+  const selector = value != null
+    ? `.btn[data-action="${action}"][data-value="${value}"]`
+    : `.btn[data-action="${action}"]`;
+  const btn = document.querySelector(selector);
+  if (!btn) return;
+  clearTimeout(btn._flashTimer);
+  btn.classList.add('btn-flash');
+  btn._flashTimer = setTimeout(() => btn.classList.remove('btn-flash'), 150);
+}
+
 // Keyboard support
 document.addEventListener('keydown', (e) => {
   // Let browser shortcuts through (Ctrl+C, Cmd+R, Alt+Tab, etc.)
@@ -305,32 +317,42 @@ document.addEventListener('keydown', (e) => {
 
   if (e.key >= '0' && e.key <= '9') {
     e.preventDefault();
+    flashButton('number', e.key);
     handleNumber(e.key);
   } else if (e.key === '.') {
     e.preventDefault();
+    flashButton('decimal');
     handleDecimal();
   } else if (e.key === '+') {
     e.preventDefault();
+    flashButton('operator', '+');
     handleOperator('+');
   } else if (e.key === '-') {
     e.preventDefault();
+    flashButton('operator', '-');
     handleOperator('-');
   } else if (e.key === '*') {
     e.preventDefault();
+    flashButton('operator', '*');
     handleOperator('*');
   } else if (e.key === '/') {
     e.preventDefault();
+    flashButton('operator', '/');
     handleOperator('/');
   } else if (e.key === 'Enter' || e.key === '=') {
     e.preventDefault();
+    flashButton('equals');
     handleEquals();
   } else if (e.key === 'Backspace') {
     e.preventDefault();
+    flashButton('backspace');
     handleBackspace();
   } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+    flashButton('clear');
     handleClear();
   } else if (e.key === '(' || e.key === ')') {
     e.preventDefault();
+    flashButton('operator', e.key);
     handleOperator(e.key);
   }
 });
