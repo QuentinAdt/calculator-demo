@@ -41,17 +41,36 @@ function addToHistory(expr, result) {
   renderHistory();
 }
 
+function createHistoryItem(item, index) {
+  const div = document.createElement('div');
+  div.className = 'history-item';
+  div.dataset.index = index;
+
+  const expr = document.createElement('div');
+  expr.className = 'expr';
+  expr.textContent = item.expression;
+
+  const res = document.createElement('div');
+  res.className = 'res';
+  res.textContent = '= ' + item.result;
+
+  div.appendChild(expr);
+  div.appendChild(res);
+  return div;
+}
+
 function renderHistory() {
+  historyList.innerHTML = '';
   if (history.length === 0) {
-    historyList.innerHTML = '<p class="history-empty">No calculations yet</p>';
+    const p = document.createElement('p');
+    p.className = 'history-empty';
+    p.textContent = 'No calculations yet';
+    historyList.appendChild(p);
     return;
   }
-  historyList.innerHTML = history.map((item, i) => `
-    <div class="history-item" data-index="${i}">
-      <div class="expr">${item.expression}</div>
-      <div class="res">= ${item.result}</div>
-    </div>
-  `).join('');
+  history.forEach((item, i) => {
+    historyList.appendChild(createHistoryItem(item, i));
+  });
 }
 
 function handleNumber(value) {
