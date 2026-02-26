@@ -77,6 +77,8 @@ function safeEval(expr) {
   return result;
 }
 
+const MAX_HISTORY = 50;
+
 let currentInput = '0';
 let currentExpression = '';
 let history = loadHistory();
@@ -85,7 +87,9 @@ let lastResult = null;
 function loadHistory() {
   try {
     const saved = localStorage.getItem('calcHistory');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    return parsed.slice(0, MAX_HISTORY);
   } catch (e) {
     return [];
   }
@@ -116,6 +120,14 @@ function updateDisplay() {
 
 function addToHistory(expr, result) {
   history.unshift({ expression: expr, result: result });
+  // Evict oldest entries to keep history bounded and localStorage lean
+  if (history.length > MAX_HISTORY) {
+    history.length = MAX_HISTORY;
+    // Remove excess DOM nodes to stay in sync
+    while (historyList.children.length > MAX_HISTORY) {
+      historyList.lastElementChild.remove();
+    }
+  }
   saveHistory();
   // Remove "No calculations yet" placeholder if present
   const empty = historyList.querySelector('.history-empty');
