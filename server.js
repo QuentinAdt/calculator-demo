@@ -116,13 +116,13 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
 });
 
 // Serve static files with tiered caching:
-// - HTML: always revalidate (picks up auto-updater changes immediately)
-// - CSS/JS/assets: cache 5 min, then revalidate via ETag/304
+// - HTML & JS: always revalidate (picks up auto-updater patches immediately)
+// - CSS/images/assets: cache 5 min, then revalidate via ETag/304
 app.use(express.static(join(__dirname, 'public'), {
   etag: true,
   lastModified: true,
   setHeaders: (res, path) => {
-    if (path.endsWith('.html')) {
+    if (path.endsWith('.html') || path.endsWith('.js')) {
       res.set('Cache-Control', 'no-cache');
     } else {
       res.set('Cache-Control', 'public, max-age=300');
