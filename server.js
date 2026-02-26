@@ -87,7 +87,9 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
     const expected = crypto.createHmac('sha256', WEBHOOK_SECRET)
       .update(bodyToVerify)
       .digest('hex');
-    if (signature !== expected) {
+    const sigBuf = Buffer.from(signature, 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
       console.log('[webhook] Invalid signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }
