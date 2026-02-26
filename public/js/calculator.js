@@ -200,11 +200,50 @@ function handleDecimal() {
   updateDisplay();
 }
 
+function handleOpenParen() {
+  if (lastResult !== null) {
+    currentInput = '';
+    currentExpression = '( ';
+    lastResult = null;
+    updateDisplay();
+    return;
+  }
+  if (currentInput === '0' && currentExpression === '') {
+    // Initial state — discard the default '0'
+    currentInput = '';
+  } else if (currentInput !== '') {
+    // Implicit multiplication: 5( → 5 × (
+    currentExpression += `${currentInput} * `;
+    currentInput = '';
+  }
+  currentExpression += '( ';
+  updateDisplay();
+}
+
+function handleCloseParen() {
+  lastResult = null;
+  if (currentInput !== '') {
+    currentExpression += `${currentInput} ) `;
+    currentInput = '';
+  } else {
+    currentExpression += ') ';
+  }
+  updateDisplay();
+}
+
 function handleOperator(op) {
+  if (op === '(') return handleOpenParen();
+  if (op === ')') return handleCloseParen();
+
   lastResult = null;
   if (currentExpression && currentInput === '') {
-    // Replace last operator
-    currentExpression = currentExpression.slice(0, -3) + ` ${op} `;
+    if (currentExpression.trimEnd().endsWith(')')) {
+      // After close paren, append operator (don't replace the paren)
+      currentExpression += `${op} `;
+    } else {
+      // Replace last operator (e.g., user changed mind: 3 + → 3 -)
+      currentExpression = currentExpression.slice(0, -3) + ` ${op} `;
+    }
   } else {
     currentExpression += `${currentInput} ${op} `;
     currentInput = '';
