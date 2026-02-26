@@ -322,11 +322,14 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .main { padding-top: 16px; padding-bottom: 16px; }
+  .hero { margin-bottom: 16px; }
   .calculator-container {
     grid-template-columns: 1fr;
     max-width: 360px;
     margin-left: auto;
     margin-right: auto;
+    margin-bottom: 24px;
   }
   .info-cards {
     grid-template-columns: 1fr;
