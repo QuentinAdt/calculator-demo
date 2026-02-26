@@ -31,45 +31,45 @@
     </div>
 
     <div class="calculator-container">
-      <div class="calculator">
+      <div class="calculator" role="group" aria-label="Calculator">
         <div class="display">
-          <div class="display-expression" id="expression"></div>
-          <div class="display-result" id="result">0</div>
+          <div class="display-expression" id="expression" aria-label="Expression"></div>
+          <div class="display-result" id="result" aria-live="polite">0</div>
         </div>
         <div class="buttons">
-          <button class="btn btn-clear" data-action="clear">C</button>
-          <button class="btn btn-operator" data-action="backspace">⌫</button>
-          <button class="btn btn-operator" data-action="operator" data-value="(">(</button>
-          <button class="btn btn-operator" data-action="operator" data-value=")">)</button>
+          <button class="btn btn-clear" data-action="clear" aria-label="Clear">C</button>
+          <button class="btn btn-operator" data-action="backspace" aria-label="Backspace">⌫</button>
+          <button class="btn btn-operator" data-action="operator" data-value="(" aria-label="Open parenthesis">(</button>
+          <button class="btn btn-operator" data-action="operator" data-value=")" aria-label="Close parenthesis">)</button>
 
           <button class="btn btn-number" data-action="number" data-value="7">7</button>
           <button class="btn btn-number" data-action="number" data-value="8">8</button>
           <button class="btn btn-number" data-action="number" data-value="9">9</button>
-          <button class="btn btn-operator btn-divide" data-action="operator" data-value="/">÷</button>
+          <button class="btn btn-operator btn-divide" data-action="operator" data-value="/" aria-label="Divide">÷</button>
 
           <button class="btn btn-number" data-action="number" data-value="4">4</button>
           <button class="btn btn-number" data-action="number" data-value="5">5</button>
           <button class="btn btn-number" data-action="number" data-value="6">6</button>
-          <button class="btn btn-operator btn-multiply" data-action="operator" data-value="*">×</button>
+          <button class="btn btn-operator btn-multiply" data-action="operator" data-value="*" aria-label="Multiply">×</button>
 
           <button class="btn btn-number" data-action="number" data-value="1">1</button>
           <button class="btn btn-number" data-action="number" data-value="2">2</button>
           <button class="btn btn-number" data-action="number" data-value="3">3</button>
-          <button class="btn btn-operator btn-minus" data-action="operator" data-value="-">−</button>
+          <button class="btn btn-operator btn-minus" data-action="operator" data-value="-" aria-label="Subtract">−</button>
 
           <button class="btn btn-number" data-action="number" data-value="0">0</button>
-          <button class="btn btn-number" data-action="decimal" data-value=".">.</button>
-          <button class="btn btn-equals" data-action="equals">=</button>
-          <button class="btn btn-operator btn-plus" data-action="operator" data-value="+">+</button>
+          <button class="btn btn-number" data-action="decimal" data-value="." aria-label="Decimal point">.</button>
+          <button class="btn btn-equals" data-action="equals" aria-label="Equals">=</button>
+          <button class="btn btn-operator btn-plus" data-action="operator" data-value="+" aria-label="Add">+</button>
         </div>
       </div>
 
-      <div class="history-panel">
+      <div class="history-panel" role="complementary" aria-label="Calculation history">
         <div class="history-header">
           <h3>History</h3>
-          <button class="history-clear" id="clearHistory">Clear</button>
+          <button class="history-clear" id="clearHistory" aria-label="Clear history">Clear</button>
         </div>
-        <div class="history-list" id="historyList">
+        <div class="history-list" id="historyList" role="log" aria-label="Past calculations">
           <p class="history-empty">No calculations yet</p>
         </div>
       </div>
