@@ -155,7 +155,7 @@ function createHistoryItem(item) {
 }
 
 function renderHistory() {
-  historyList.innerHTML = '';
+  historyList.replaceChildren();
   if (history.length === 0) {
     const p = document.createElement('p');
     p.className = 'history-empty';
@@ -163,9 +163,12 @@ function renderHistory() {
     historyList.appendChild(p);
     return;
   }
+  // Batch all DOM insertions into a single append to avoid per-item reflows
+  const fragment = document.createDocumentFragment();
   history.forEach((item) => {
-    historyList.appendChild(createHistoryItem(item));
+    fragment.appendChild(createHistoryItem(item));
   });
+  historyList.appendChild(fragment);
 }
 
 function handleNumber(value) {
