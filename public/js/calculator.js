@@ -24,6 +24,16 @@ let lastResult = null;
 function updateDisplay() {
   display.textContent = currentInput;
   expression.textContent = currentExpression;
+
+  // Auto-scale result font size to fit long numbers
+  const len = currentInput.length;
+  const maxChars = 9;
+  const baseFontSize = 2;
+  const minFontSize = 0.9;
+  const fontSize = len <= maxChars
+    ? baseFontSize
+    : Math.max(minFontSize, baseFontSize * maxChars / len);
+  display.style.fontSize = fontSize + 'rem';
 }
 
 function addToHistory(expr, result) {

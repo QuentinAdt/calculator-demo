@@ -133,6 +133,7 @@ body {
   font-weight: 500;
   color: var(--text);
   word-break: break-all;
+  transition: font-size 0.15s ease;
 }
 
 .buttons {
