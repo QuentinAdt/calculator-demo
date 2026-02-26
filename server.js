@@ -32,6 +32,9 @@ const app = express();
 // Compress all text-based responses (HTML, CSS, JS, JSON) to reduce transfer size
 app.use(compression());
 
+// Feedback widget origin — used in CSP to allow the lazy-loaded widget to function
+const WIDGET_ORIGIN = 'https://*.feedbackloopai.ovh';
+
 // Security headers to harden against common web attacks
 app.use((req, res, next) => {
   res.set({
@@ -39,6 +42,17 @@ app.use((req, res, next) => {
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Content-Security-Policy': [
+      "default-src 'self'",
+      `script-src 'self' ${WIDGET_ORIGIN}`,
+      `style-src 'self' 'unsafe-inline' ${WIDGET_ORIGIN}`,
+      `connect-src 'self' ${WIDGET_ORIGIN}`,
+      `img-src 'self' data: ${WIDGET_ORIGIN}`,
+      `frame-src ${WIDGET_ORIGIN}`,
+      "font-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join('; '),
   });
   next();
 });
