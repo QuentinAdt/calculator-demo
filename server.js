@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import crypto from 'crypto';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -27,6 +28,9 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 const ALLOWED_IPS = (process.env.ALLOWED_WEBHOOK_IPS || '116.202.8.41').split(',').map(s => s.trim());
 
 const app = express();
+
+// Compress all text-based responses (HTML, CSS, JS, JSON) to reduce transfer size
+app.use(compression());
 
 // Parse JSON for webhook endpoint, keeping raw body for HMAC verification
 app.use('/api/webhook', express.json({
