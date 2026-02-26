@@ -32,6 +32,17 @@ const app = express();
 // Compress all text-based responses (HTML, CSS, JS, JSON) to reduce transfer size
 app.use(compression());
 
+// Security headers to harden against common web attacks
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  });
+  next();
+});
+
 // Parse JSON for webhook endpoint, keeping raw body for HMAC verification
 app.use('/api/webhook', express.json({
   limit: '1mb',
