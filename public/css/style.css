@@ -297,6 +297,20 @@ body {
 }
 .footer a:hover { text-decoration: underline; }
 
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .nav-link,
+  .btn,
+  .display-result,
+  .history-clear,
+  .history-item {
+    transition: none;
+  }
+  .btn:active {
+    transform: none;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .calculator-container {
