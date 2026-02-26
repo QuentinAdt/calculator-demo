@@ -300,26 +300,37 @@ clearHistoryBtn.addEventListener('click', () => {
 
 // Keyboard support
 document.addEventListener('keydown', (e) => {
+  // Let browser shortcuts through (Ctrl+C, Cmd+R, Alt+Tab, etc.)
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
   if (e.key >= '0' && e.key <= '9') {
+    e.preventDefault();
     handleNumber(e.key);
   } else if (e.key === '.') {
+    e.preventDefault();
     handleDecimal();
   } else if (e.key === '+') {
+    e.preventDefault();
     handleOperator('+');
   } else if (e.key === '-') {
+    e.preventDefault();
     handleOperator('-');
   } else if (e.key === '*') {
+    e.preventDefault();
     handleOperator('*');
   } else if (e.key === '/') {
-    e.preventDefault(); // prevent browser quick-find
+    e.preventDefault();
     handleOperator('/');
   } else if (e.key === 'Enter' || e.key === '=') {
+    e.preventDefault();
     handleEquals();
   } else if (e.key === 'Backspace') {
+    e.preventDefault();
     handleBackspace();
   } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
     handleClear();
   } else if (e.key === '(' || e.key === ')') {
+    e.preventDefault();
     handleOperator(e.key);
   }
 });
