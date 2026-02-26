@@ -297,9 +297,11 @@ body {
 }
 .footer a:hover { text-decoration: underline; }
 
-/* Keyboard flash — brief highlight when a calculator key is pressed */
+/* Keyboard flash — brief highlight when a calculator key is pressed.
+   Uses inset box-shadow instead of filter:brightness() to avoid expensive
+   offscreen-buffer rasterization on every keypress. */
 .btn.btn-flash {
-  filter: brightness(1.4);
+  box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.12);
   transform: scale(0.95);
 }
 
