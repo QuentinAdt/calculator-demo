@@ -169,21 +169,21 @@ function handleBackspace() {
   updateDisplay();
 }
 
-// Button click handlers
-document.querySelectorAll('.btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const action = btn.dataset.action;
-    const value = btn.dataset.value;
+// Button click handlers (event delegation — single listener for all buttons)
+document.querySelector('.buttons').addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const value = btn.dataset.value;
 
-    switch (action) {
-      case 'number': handleNumber(value); break;
-      case 'decimal': handleDecimal(); break;
-      case 'operator': handleOperator(value); break;
-      case 'equals': handleEquals(); break;
-      case 'clear': handleClear(); break;
-      case 'backspace': handleBackspace(); break;
-    }
-  });
+  switch (action) {
+    case 'number': handleNumber(value); break;
+    case 'decimal': handleDecimal(); break;
+    case 'operator': handleOperator(value); break;
+    case 'equals': handleEquals(); break;
+    case 'clear': handleClear(); break;
+    case 'backspace': handleBackspace(); break;
+  }
 });
 
 // Click history item to reuse result (event delegation — single listener for all items)
