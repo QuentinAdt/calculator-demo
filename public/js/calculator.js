@@ -38,13 +38,17 @@ function updateDisplay() {
 
 function addToHistory(expr, result) {
   history.unshift({ expression: expr, result: result });
-  renderHistory();
+  // Remove "No calculations yet" placeholder if present
+  const empty = historyList.querySelector('.history-empty');
+  if (empty) empty.remove();
+  // Prepend new item directly instead of rebuilding entire list
+  historyList.prepend(createHistoryItem({ expression: expr, result: result }));
 }
 
-function createHistoryItem(item, index) {
+function createHistoryItem(item) {
   const div = document.createElement('div');
   div.className = 'history-item';
-  div.dataset.index = index;
+  div.dataset.result = item.result;
 
   const expr = document.createElement('div');
   expr.className = 'expr';
@@ -68,8 +72,8 @@ function renderHistory() {
     historyList.appendChild(p);
     return;
   }
-  history.forEach((item, i) => {
-    historyList.appendChild(createHistoryItem(item, i));
+  history.forEach((item) => {
+    historyList.appendChild(createHistoryItem(item));
   });
 }
 
@@ -186,8 +190,7 @@ document.querySelectorAll('.btn').forEach(btn => {
 historyList.addEventListener('click', (e) => {
   const item = e.target.closest('.history-item');
   if (!item) return;
-  const idx = parseInt(item.dataset.index);
-  currentInput = String(history[idx].result);
+  currentInput = item.dataset.result;
   currentExpression = '';
   updateDisplay();
 });
