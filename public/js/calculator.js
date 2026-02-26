@@ -4,7 +4,7 @@
  * INTENTIONAL BUGS (for demo purposes):
  * 1. Division by zero shows "NaN" instead of an error message
  * 2. "C" button does NOT clear the history
- * 3. Floating-point imprecision (0.1 + 0.2 = 0.30000000000000004)
+ * 3. (FIXED) Floating-point imprecision — results now rounded to 12 significant digits
  *
  * MISSING FEATURES (for feature requests):
  * - No dark/light theme toggle (always dark)
@@ -193,9 +193,10 @@ function handleEquals() {
     // The "correct" behavior would be to show "Cannot divide by zero"
     const result = safeEval(fullExpr);
 
-    // BUG #3: Floating-point imprecision — we do NOT round the result
-    // 0.1 + 0.2 will show 0.30000000000000004 instead of 0.3
-    const displayResult = String(result);
+    // Round to 12 significant digits to eliminate IEEE 754 floating-point artifacts
+    // e.g. 0.1 + 0.2 now correctly displays 0.3 instead of 0.30000000000000004
+    const cleaned = isFinite(result) ? parseFloat(result.toPrecision(12)) : result;
+    const displayResult = String(cleaned);
 
     currentInput = displayResult;
     currentExpression = '';
