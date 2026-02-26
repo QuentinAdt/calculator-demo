@@ -36,7 +36,7 @@ app.use('/api/webhook', express.json({
   }
 }));
 
-// Rate limiting for webhook (simple in-memory)
+// Rate limiting for webhook (simple in-memory with periodic cleanup)
 const webhookHits = new Map();
 function webhookRateLimit(req, res, next) {
   const ip = req.ip || req.connection.remoteAddress;
@@ -52,6 +52,19 @@ function webhookRateLimit(req, res, next) {
   webhookHits.set(ip, recent);
   next();
 }
+
+// Evict stale rate-limit entries to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, hits] of webhookHits) {
+    const recent = hits.filter(t => now - t < 60000);
+    if (recent.length === 0) {
+      webhookHits.delete(ip);
+    } else {
+      webhookHits.set(ip, recent);
+    }
+  }
+}, 300_000).unref();
 
 // Webhook endpoint
 app.post('/api/webhook', webhookRateLimit, (req, res) => {
