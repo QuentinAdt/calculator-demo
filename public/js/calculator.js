@@ -312,6 +312,10 @@ function flashButton(action, value) {
 
 // Keyboard support
 document.addEventListener('keydown', (e) => {
+  // Don't intercept keypresses when the user is typing in form fields (e.g. feedback widget)
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
+
   // Let browser shortcuts through (Ctrl+C, Cmd+R, Alt+Tab, etc.)
   if (e.ctrlKey || e.metaKey || e.altKey) return;
 
