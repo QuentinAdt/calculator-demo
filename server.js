@@ -130,8 +130,13 @@ app.use(express.static(join(__dirname, 'public'), {
   }
 }));
 
-// SPA fallback
+// SPA fallback — serve index.html for clean URL navigation, 404 for missing files
 app.get('*', (req, res) => {
+  // Requests with file extensions (e.g. /favicon.ico, /missing.js) are genuinely missing
+  // from public/ — return 404 instead of wastefully serving the full HTML page
+  if (/\.\w+$/.test(req.path)) {
+    return res.status(404).end();
+  }
   res.sendFile(join(__dirname, 'public', 'index.html'));
 });
 
