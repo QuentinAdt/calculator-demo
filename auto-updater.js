@@ -28,6 +28,54 @@ function sanitizeField(value, maxLength = MAX_FIELD_LENGTH) {
 }
 
 /**
+ * Scan AI-generated code for dangerous patterns that a calculator app should never contain.
+ * Guards against prompt injection attacks that trick the AI into generating malicious code
+ * (e.g. data exfiltration via fetch, XSS via innerHTML, or arbitrary code execution via eval).
+ * Returns an array of violation descriptions; empty array means the code is safe.
+ */
+function detectDangerousPatterns(code) {
+  const violations = [];
+  const patterns = [
+    // Network access — calculator has no reason to make HTTP requests
+    [/\bfetch\s*\(/, 'network access (fetch)'],
+    [/\bXMLHttpRequest\b/, 'network access (XMLHttpRequest)'],
+    [/\bWebSocket\b/, 'network access (WebSocket)'],
+    [/\bnavigator\.sendBeacon\b/, 'network access (sendBeacon)'],
+    [/\bnew\s+EventSource\b/, 'network access (EventSource)'],
+
+    // Dynamic code execution
+    [/\beval\s*\(/, 'dynamic code execution (eval)'],
+    [/\bnew\s+Function\s*\(/, 'dynamic code execution (new Function)'],
+    [/\bsetTimeout\s*\(\s*['"`]/, 'dynamic code execution (setTimeout with string)'],
+    [/\bsetInterval\s*\(\s*['"`]/, 'dynamic code execution (setInterval with string)'],
+
+    // Unsafe DOM mutation — calculator uses textContent exclusively
+    [/\.innerHTML\b/, 'unsafe DOM mutation (innerHTML)'],
+    [/\.outerHTML\s*=/, 'unsafe DOM mutation (outerHTML)'],
+    [/\bdocument\.write\s*\(/, 'unsafe DOM mutation (document.write)'],
+    [/\bcreateElement\s*\(\s*['"`]script['"`]\s*\)/, 'script element creation'],
+
+    // Cookie access — calculator does not use cookies
+    [/\bdocument\.cookie\b/, 'cookie access'],
+
+    // Dynamic imports
+    [/\bimport\s*\(/, 'dynamic import'],
+
+    // Navigation/redirects
+    [/(?:window|document)\.location\s*=/, 'page redirect'],
+    [/\blocation\.(?:href|replace|assign)\s*[=(]/, 'page redirect'],
+  ];
+
+  for (const [regex, label] of patterns) {
+    if (regex.test(code)) {
+      violations.push(label);
+    }
+  }
+
+  return violations;
+}
+
+/**
  * Handle incoming webhook from FeedbackLoop AI.
  * Generates a code patch via AI, applies it, regenerates docs.
  */
@@ -229,6 +277,13 @@ async function generatePatch(prompt, currentCode, apiKey) {
       new vm.Script(code);
     } catch (syntaxErr) {
       console.error('[auto-updater] Generated code has syntax errors, rejecting patch:', syntaxErr.message);
+      return null;
+    }
+
+    // Reject code containing dangerous patterns that could result from prompt injection
+    const violations = detectDangerousPatterns(code);
+    if (violations.length > 0) {
+      console.error(`[auto-updater] Generated code contains dangerous patterns, rejecting patch: ${violations.join(', ')}`);
       return null;
     }
 
