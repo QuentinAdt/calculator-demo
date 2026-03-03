@@ -120,6 +120,22 @@ let history = loadHistory();
 let lastResult = null;
 let lastExprDisplay = null; // Completed expression shown after pressing equals
 
+// Reset calculator to initial state (does NOT clear history — see BUG #2)
+function resetCalculatorState() {
+  currentInput = '0';
+  currentExpression = '';
+  lastResult = null;
+  lastExprDisplay = null;
+}
+
+// Set error display state — calculator rejects operators until user clears or types a new number
+function setErrorState(message) {
+  currentInput = message;
+  currentExpression = '';
+  lastResult = 'error';
+  lastExprDisplay = null;
+}
+
 // Track previous display state to skip redundant DOM writes
 let prevDisplayText = null;
 let prevExprText = null;
@@ -353,10 +369,7 @@ function handleEquals() {
 
     // Catch division by zero (Infinity) and invalid operations (NaN)
     if (!isFinite(result)) {
-      currentInput = result !== result ? 'Error' : 'Cannot divide by zero';
-      currentExpression = '';
-      lastResult = 'error';
-      lastExprDisplay = null;
+      setErrorState(result !== result ? 'Error' : 'Cannot divide by zero');
       updateDisplay();
       return;
     }
@@ -372,19 +385,13 @@ function handleEquals() {
     addToHistory(displayExpr, displayResult);
     lastExprDisplay = fullExpr + ' = ' + displayResult;
   } catch (e) {
-    currentInput = 'Error';
-    currentExpression = '';
-    lastResult = 'error';
-    lastExprDisplay = null;
+    setErrorState('Error');
   }
   updateDisplay();
 }
 
 function handleClear() {
-  lastExprDisplay = null;
-  currentInput = '0';
-  currentExpression = '';
-  lastResult = null;
+  resetCalculatorState();
   // BUG #2: "C" button does NOT clear the history
   // It should also call: history = []; renderHistory();
   updateDisplay();
