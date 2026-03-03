@@ -315,6 +315,44 @@ process.on('unhandledRejection', (reason) => {
   console.error('[server] Unhandled promise rejection:', reason instanceof Error ? reason.message : reason);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// Catch uncaught synchronous exceptions that occur outside Express route handlers
+// (e.g. in setInterval callbacks, event emitters). Log before exiting so the error
+// is visible in monitoring rather than silently crashing.
+process.on('uncaughtException', (err) => {
+  console.error('[server] Uncaught exception — shutting down:', err.message);
+  process.exit(1);
+});
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Calculator demo running at http://0.0.0.0:${PORT}`);
 });
+
+// Surface actionable error messages for common listen failures
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[server] Port ${PORT} is already in use. Stop the other process or set a different PORT.`);
+  } else if (err.code === 'EACCES') {
+    console.error(`[server] Permission denied for port ${PORT}. Use a port above 1024 or run with elevated privileges.`);
+  } else {
+    console.error(`[server] Failed to start: ${err.message}`);
+  }
+  process.exit(1);
+});
+
+// Graceful shutdown — stop accepting new connections and let in-flight requests
+// finish before exiting. Prevents dropped requests during deploys/restarts.
+function shutdown(signal) {
+  console.log(`[server] ${signal} received — closing server gracefully`);
+  server.close(() => {
+    console.log('[server] All connections closed — exiting');
+    process.exit(0);
+  });
+  // Force exit if connections linger beyond a reasonable deadline
+  setTimeout(() => {
+    console.error('[server] Graceful shutdown timed out — forcing exit');
+    process.exit(1);
+  }, 5000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
