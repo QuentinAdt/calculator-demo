@@ -12,6 +12,20 @@ function getEnv(key) { return process.env[key] || ''; }
 
 const CALCULATOR_JS_PATH = join(__dirname, 'public', 'js', 'calculator.js');
 
+// Max lengths for user-controlled webhook fields interpolated into AI prompts.
+// Truncation limits prompt injection surface and prevents excessively large payloads.
+const MAX_FIELD_LENGTH = 500;
+const MAX_TRANSCRIPT_ENTRIES = 20;
+
+/**
+ * Sanitize a user-controlled string before interpolating into an AI prompt.
+ * Truncates to maxLength and strips non-printable characters (except common whitespace).
+ */
+function sanitizeField(value, maxLength = MAX_FIELD_LENGTH) {
+  if (typeof value !== 'string') return '';
+  return value.slice(0, maxLength).replace(/[^\x20-\x7E\n\r\t]/g, '');
+}
+
 /**
  * Handle incoming webhook from FeedbackLoop AI.
  * Generates a code patch via AI, applies it, regenerates docs.
@@ -69,19 +83,22 @@ export async function handleWebhook(payload) {
 
 function buildPatchPrompt(category, request, currentCode) {
   const analysisStr = request.aiAnalysis
-    ? JSON.stringify(request.aiAnalysis, null, 2)
+    ? sanitizeField(JSON.stringify(request.aiAnalysis, null, 2), 1000)
     : 'No analysis available';
 
   const transcriptStr = Array.isArray(request.transcript)
-    ? request.transcript.map(m => `${m.role}: ${m.content}`).join('\n')
+    ? request.transcript
+        .slice(0, MAX_TRANSCRIPT_ENTRIES)
+        .map(m => `${sanitizeField(String(m.role || ''), 20)}: ${sanitizeField(String(m.content || ''))}`)
+        .join('\n')
     : '';
 
   if (category === 'BUG') {
     return `You are a senior JavaScript developer. A user reported a bug in a calculator app.
 
 ## Bug Report
-Title: ${request.title || 'N/A'}
-Summary: ${request.aiSummary || 'N/A'}
+Title: ${sanitizeField(request.title) || 'N/A'}
+Summary: ${sanitizeField(request.aiSummary) || 'N/A'}
 
 ## AI Analysis
 ${analysisStr}
@@ -107,8 +124,8 @@ ${currentCode}
     return `You are a senior JavaScript developer. A user requested a feature for a calculator app.
 
 ## Feature Request
-Title: ${request.title || 'N/A'}
-Summary: ${request.aiSummary || 'N/A'}
+Title: ${sanitizeField(request.title) || 'N/A'}
+Summary: ${sanitizeField(request.aiSummary) || 'N/A'}
 
 ## AI Analysis
 ${analysisStr}
