@@ -193,6 +193,11 @@ function updateDisplay() {
     prevExprText = friendlyExpr;
   }
 
+  // Keep the display button's aria-label in sync so screen reader users can
+  // discover the current result by navigating to the display element.
+  // (The #a11yStatus live region handles real-time announcements separately.)
+  displayContainer.setAttribute('aria-label', 'Result: ' + formattedInput + '. Activate to copy to clipboard');
+
   // Auto-scale result font size to fit long numbers (use formatted length for accurate sizing)
   const len = formattedInput.length;
   const maxChars = 9;
