@@ -145,14 +145,19 @@ function getInlinedHtml() {
   }
   try {
     const html = readFileSync(HTML_PATH, 'utf-8');
-    const css = readFileSync(CSS_PATH, 'utf-8');
-    cachedInlinedHtml = html.replace(
-      '<link rel="stylesheet" href="/css/style.css">',
-      `<style>${css}</style>`
-    );
-  } catch {
-    // Fallback to raw HTML if CSS read fails
-    cachedInlinedHtml = readFileSync(HTML_PATH, 'utf-8');
+    try {
+      const css = readFileSync(CSS_PATH, 'utf-8');
+      cachedInlinedHtml = html.replace(
+        '<link rel="stylesheet" href="/css/style.css">',
+        `<style>${css}</style>`
+      );
+    } catch {
+      // CSS read failed — serve raw HTML (browser will fetch stylesheet separately)
+      cachedInlinedHtml = html;
+    }
+  } catch (err) {
+    console.error('[server] Failed to read index.html:', err.message);
+    return null;
   }
   htmlCacheTime = now;
   return cachedInlinedHtml;
@@ -182,8 +187,20 @@ app.get('*', (req, res) => {
   if (/\.\w+$/.test(req.path)) {
     return res.status(404).end();
   }
+  const html = getInlinedHtml();
+  if (!html) {
+    return res.status(503).type('text').send('Service temporarily unavailable');
+  }
   res.set('Cache-Control', 'no-cache');
-  res.type('html').send(getInlinedHtml());
+  res.type('html').send(html);
+});
+
+// Global error handler — catches unhandled exceptions in route handlers.
+// Prevents stack trace leakage to clients and returns a clean error response.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  console.error('[server] Unhandled error:', err.message);
+  res.status(500).type('text').send('Internal server error');
 });
 
 app.listen(PORT, '0.0.0.0', () => {
