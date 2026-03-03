@@ -232,6 +232,23 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Standard scrollbar styling (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+/* WebKit scrollbar styling (Chrome, Safari, Edge) */
+.history-list::-webkit-scrollbar {
+  width: 6px;
+}
+.history-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.history-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 .history-empty {
   color: var(--text-muted);
