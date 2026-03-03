@@ -158,15 +158,52 @@ let cachedInlinedHtml = null;
 let htmlCacheTime = 0;
 const HTML_CACHE_TTL = 10_000; // 10 seconds
 
-// Compute short content hashes for JS files — used as cache-busting version
-// query parameters so browsers can cache aggressively with immutable max-age.
+// Lightweight runtime minification — no build step or dependencies needed.
+// CSS: strip comments + collapse whitespace for inlined <style> blocks.
+// JS: strip comments + blank lines for separate script responses.
+function minifyCss(css) {
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/ ?([{}:;,]) ?/g, '$1')
+    .replace(/;}/g, '}')
+    .trim();
+}
+
+function minifyJs(js) {
+  return js
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
+// Cache minified JS files alongside HTML — same TTL so auto-updater changes propagate.
 let jsVersions = {};
+let cachedMinifiedJs = {};
+
+function getMinifiedJs(filename) {
+  const now = Date.now();
+  const cached = cachedMinifiedJs[filename];
+  if (cached && now - cached.time < HTML_CACHE_TTL) return cached;
+  try {
+    const raw = readFileSync(join(JS_DIR, filename), 'utf-8');
+    const content = minifyJs(raw);
+    const hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
+    const entry = { content, hash, time: now };
+    cachedMinifiedJs[filename] = entry;
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
 function computeJsVersions() {
   for (const file of ['calculator.js', 'feedback-loader.js']) {
-    try {
-      const content = readFileSync(join(JS_DIR, file));
-      jsVersions[file] = crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
-    } catch {
+    const entry = getMinifiedJs(file);
+    if (entry) {
+      jsVersions[file] = entry.hash;
+    } else {
       delete jsVersions[file];
     }
   }
@@ -183,7 +220,7 @@ function getInlinedHtml() {
       const css = readFileSync(CSS_PATH, 'utf-8');
       cachedInlinedHtml = html.replace(
         '<link rel="stylesheet" href="/css/style.css">',
-        `<style>${css}</style>`
+        `<style>${minifyCss(css)}</style>`
       );
     } catch {
       // CSS read failed — serve raw HTML (browser will fetch stylesheet separately)
@@ -206,6 +243,21 @@ function getInlinedHtml() {
   htmlCacheTime = now;
   return cachedInlinedHtml;
 }
+
+// Serve minified JS with the same tiered caching strategy as raw files.
+// Registered before express.static so minified content takes priority.
+app.get('/js/:file', (req, res) => {
+  const filename = req.params.file;
+  if (!/^[\w.-]+\.js$/.test(filename)) return res.status(404).end();
+  const entry = getMinifiedJs(filename);
+  if (!entry) return res.status(404).end();
+  if (req.query.v) {
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else {
+    res.set('Cache-Control', 'no-cache');
+  }
+  res.type('js').send(entry.content);
+});
 
 // Serve static files with tiered caching:
 // - HTML: served via custom handler below (with inlined CSS)
