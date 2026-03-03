@@ -1,7 +1,7 @@
 import express from 'express';
 import compression from 'compression';
 import crypto from 'crypto';
-import { readFileSync } from 'fs';
+import { readFileSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { handleWebhook } from './auto-updater.js';
@@ -150,13 +150,41 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
 
 // Inline CSS into HTML to eliminate the render-blocking stylesheet request,
 // improving First Contentful Paint (FCP) and Largest Contentful Paint (LCP).
-// The combined HTML is cached briefly so auto-updater changes are picked up.
+// Cache is invalidated by file mtime changes rather than a fixed TTL, avoiding
+// redundant disk reads and minification when files haven't changed.
 const HTML_PATH = join(__dirname, 'public', 'index.html');
 const CSS_PATH = join(__dirname, 'public', 'css', 'style.css');
 const JS_DIR = join(__dirname, 'public', 'js');
+const JS_FILES = ['calculator.js', 'feedback-loader.js'];
 let cachedInlinedHtml = null;
-let htmlCacheTime = 0;
-const HTML_CACHE_TTL = 10_000; // 10 seconds
+
+// Mtime-based cache invalidation: only re-read and re-minify files when they
+// actually change on disk. statSync is ~0.01ms per call (negligible vs full
+// file reads + minification), and is throttled to at most once per second.
+const MTIME_CHECK_MS = 1000;
+let lastMtimeCheck = 0;
+let cachedMtimes = {};
+
+function getFileMtime(filePath) {
+  try {
+    return statSync(filePath).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+function haveFilesChanged(paths) {
+  for (const p of paths) {
+    if (cachedMtimes[p] !== getFileMtime(p)) return true;
+  }
+  return false;
+}
+
+function recordMtimes(paths) {
+  for (const p of paths) {
+    cachedMtimes[p] = getFileMtime(p);
+  }
+}
 
 // Lightweight runtime minification — no build step or dependencies needed.
 // CSS: strip comments + collapse whitespace for inlined <style> blocks.
@@ -178,19 +206,29 @@ function minifyJs(js) {
     .trim();
 }
 
-// Cache minified JS files alongside HTML — same TTL so auto-updater changes propagate.
+// Cache minified JS files — invalidated by file mtime changes.
 let jsVersions = {};
 let cachedMinifiedJs = {};
 
 function getMinifiedJs(filename) {
+  const filePath = join(JS_DIR, filename);
   const now = Date.now();
   const cached = cachedMinifiedJs[filename];
-  if (cached && now - cached.time < HTML_CACHE_TTL) return cached;
+  if (cached) {
+    // Throttle mtime checks to once per second per file
+    if (now - cached.time < MTIME_CHECK_MS) return cached;
+    const currentMtime = getFileMtime(filePath);
+    if (cached.mtime === currentMtime) {
+      cached.time = now; // reset throttle timer
+      return cached;
+    }
+  }
   try {
-    const raw = readFileSync(join(JS_DIR, filename), 'utf-8');
+    const mtime = getFileMtime(filePath);
+    const raw = readFileSync(filePath, 'utf-8');
     const content = minifyJs(raw);
     const hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
-    const entry = { content, hash, time: now };
+    const entry = { content, hash, time: now, mtime };
     cachedMinifiedJs[filename] = entry;
     return entry;
   } catch {
@@ -211,7 +249,15 @@ function computeJsVersions() {
 
 function getInlinedHtml() {
   const now = Date.now();
-  if (cachedInlinedHtml && now - htmlCacheTime < HTML_CACHE_TTL) {
+  // Throttle mtime checks to once per second
+  if (cachedInlinedHtml && now - lastMtimeCheck < MTIME_CHECK_MS) {
+    return cachedInlinedHtml;
+  }
+  lastMtimeCheck = now;
+  // Watch HTML, CSS, and all JS files — a change to any triggers a rebuild
+  // (JS changes affect the version hashes embedded in HTML)
+  const watchedPaths = [HTML_PATH, CSS_PATH, ...JS_FILES.map(f => join(JS_DIR, f))];
+  if (cachedInlinedHtml && !haveFilesChanged(watchedPaths)) {
     return cachedInlinedHtml;
   }
   try {
@@ -231,7 +277,7 @@ function getInlinedHtml() {
     return null;
   }
   // Fingerprint JS URLs with content hashes for long-term immutable caching.
-  // When auto-updater modifies a file, the hash changes within HTML_CACHE_TTL
+  // When auto-updater modifies a file, the mtime change triggers a rebuild
   // and browsers fetch the new version automatically.
   computeJsVersions();
   for (const [file, hash] of Object.entries(jsVersions)) {
@@ -240,7 +286,7 @@ function getInlinedHtml() {
       `/js/${file}?v=${hash}`
     );
   }
-  htmlCacheTime = now;
+  recordMtimes(watchedPaths);
   return cachedInlinedHtml;
 }
 
