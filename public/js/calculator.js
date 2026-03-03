@@ -424,5 +424,16 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Copy result to clipboard when display is clicked/tapped
+const displayContainer = document.querySelector('.display');
+displayContainer.addEventListener('click', () => {
+  const text = currentInput;
+  if (!text || text === '0' || text === 'Error' || text === 'Cannot divide by zero') return;
+  navigator.clipboard.writeText(text).then(() => {
+    displayContainer.classList.add('display-copied');
+    setTimeout(() => displayContainer.classList.remove('display-copied'), 1200);
+  }).catch(() => {});
+});
+
 renderHistory();
 updateDisplay();
