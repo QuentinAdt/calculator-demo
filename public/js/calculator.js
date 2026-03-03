@@ -77,6 +77,7 @@ function safeEval(expr) {
 }
 
 const MAX_HISTORY = 50;
+const MAX_INPUT_LENGTH = 15; // Cap manual input to stay within JS Number precision
 
 let currentInput = '0';
 let currentExpression = '';
@@ -211,6 +212,9 @@ function handleNumber(value) {
     currentInput = value;
   } else if (currentInput === '0' && value === '0') {
     // keep as 0
+  } else if (currentInput.replace('.', '').length >= MAX_INPUT_LENGTH) {
+    // Cap digit count to prevent display overflow and precision loss
+    return;
   } else {
     currentInput += value;
   }
@@ -225,7 +229,7 @@ function handleDecimal() {
     updateDisplay();
     return;
   }
-  if (!currentInput.includes('.')) {
+  if (!currentInput.includes('.') && currentInput.length < MAX_INPUT_LENGTH) {
     currentInput += '.';
   }
   updateDisplay();
