@@ -83,6 +83,11 @@ let currentExpression = '';
 let history = loadHistory();
 let lastResult = null;
 
+// Track previous display state to skip redundant DOM writes
+let prevDisplayText = null;
+let prevExprText = null;
+let prevFontSize = null;
+
 function loadHistory() {
   try {
     const saved = localStorage.getItem('calcHistory');
@@ -103,7 +108,11 @@ function saveHistory() {
 }
 
 function updateDisplay() {
-  display.textContent = currentInput;
+  // Only write to DOM when the display text actually changed
+  if (prevDisplayText !== currentInput) {
+    display.textContent = currentInput;
+    prevDisplayText = currentInput;
+  }
 
   // Show live preview of expression result while typing
   let exprText = currentExpression;
@@ -116,10 +125,14 @@ function updateDisplay() {
     } catch (e) { /* expression not yet complete, skip preview */ }
   }
   // Replace raw operators with friendly symbols to match the button labels (× ÷ −)
-  expression.textContent = exprText
+  const friendlyExpr = exprText
     .replace(/\*/g, '×')
     .replace(/\//g, '÷')
     .replace(/-/g, '−');
+  if (prevExprText !== friendlyExpr) {
+    expression.textContent = friendlyExpr;
+    prevExprText = friendlyExpr;
+  }
 
   // Auto-scale result font size to fit long numbers
   const len = currentInput.length;
@@ -129,7 +142,11 @@ function updateDisplay() {
   const fontSize = len <= maxChars
     ? baseFontSize
     : Math.max(minFontSize, baseFontSize * maxChars / len);
-  display.style.fontSize = fontSize + 'rem';
+  const fontSizeStr = fontSize + 'rem';
+  if (prevFontSize !== fontSizeStr) {
+    display.style.fontSize = fontSizeStr;
+    prevFontSize = fontSizeStr;
+  }
 }
 
 function addToHistory(expr, result) {
