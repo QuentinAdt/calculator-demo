@@ -495,6 +495,24 @@ function flashButton(action, value) {
   btn._flashTimer = setTimeout(() => btn.classList.remove('btn-flash'), 150);
 }
 
+// Keyboard-to-calculator mapping — declarative table replaces verbose if-else chain.
+// Each entry: { action, value?, handler, noPrevent? }
+const keyBindings = new Map();
+for (let d = 0; d <= 9; d++) {
+  keyBindings.set(String(d), { action: 'number', value: String(d), handler: handleNumber });
+}
+['+', '-', '*', '/', '(', ')'].forEach(op => {
+  keyBindings.set(op, { action: 'operator', value: op, handler: handleOperator });
+});
+keyBindings.set('.', { action: 'decimal', handler: handleDecimal });
+keyBindings.set('Enter', { action: 'equals', handler: handleEquals });
+keyBindings.set('=', { action: 'equals', handler: handleEquals });
+keyBindings.set('Backspace', { action: 'backspace', handler: handleBackspace });
+keyBindings.set('%', { action: 'percent', handler: handlePercent });
+['Escape', 'c', 'C'].forEach(k => {
+  keyBindings.set(k, { action: 'clear', handler: handleClear, noPrevent: true });
+});
+
 // Keyboard support
 document.addEventListener('keydown', (e) => {
   // Don't intercept keypresses when the user is typing in form fields (e.g. feedback widget)
@@ -504,50 +522,11 @@ document.addEventListener('keydown', (e) => {
   // Let browser shortcuts through (Ctrl+C, Cmd+R, Alt+Tab, etc.)
   if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-  if (e.key >= '0' && e.key <= '9') {
-    e.preventDefault();
-    flashButton('number', e.key);
-    handleNumber(e.key);
-  } else if (e.key === '.') {
-    e.preventDefault();
-    flashButton('decimal');
-    handleDecimal();
-  } else if (e.key === '+') {
-    e.preventDefault();
-    flashButton('operator', '+');
-    handleOperator('+');
-  } else if (e.key === '-') {
-    e.preventDefault();
-    flashButton('operator', '-');
-    handleOperator('-');
-  } else if (e.key === '*') {
-    e.preventDefault();
-    flashButton('operator', '*');
-    handleOperator('*');
-  } else if (e.key === '/') {
-    e.preventDefault();
-    flashButton('operator', '/');
-    handleOperator('/');
-  } else if (e.key === 'Enter' || e.key === '=') {
-    e.preventDefault();
-    flashButton('equals');
-    handleEquals();
-  } else if (e.key === 'Backspace') {
-    e.preventDefault();
-    flashButton('backspace');
-    handleBackspace();
-  } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
-    flashButton('clear');
-    handleClear();
-  } else if (e.key === '%') {
-    e.preventDefault();
-    flashButton('percent');
-    handlePercent();
-  } else if (e.key === '(' || e.key === ')') {
-    e.preventDefault();
-    flashButton('operator', e.key);
-    handleOperator(e.key);
-  }
+  const binding = keyBindings.get(e.key);
+  if (!binding) return;
+  if (!binding.noPrevent) e.preventDefault();
+  flashButton(binding.action, binding.value);
+  binding.handler(binding.value);
 });
 
 // Copy result to clipboard when display is clicked/tapped
