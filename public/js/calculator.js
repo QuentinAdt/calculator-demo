@@ -183,6 +183,7 @@ function createHistoryItem(item) {
   const div = document.createElement('div');
   div.className = 'history-item';
   div.dataset.result = item.result;
+  div.dataset.expression = item.expression;
 
   const expr = document.createElement('div');
   expr.className = 'expr';
@@ -417,13 +418,27 @@ document.querySelector('.buttons').addEventListener('click', (e) => {
 });
 
 // Click history item to reuse result (event delegation — single listener for all items)
+// When an expression is in progress (e.g. "5 + "), the history result is inserted as the
+// next operand so users can compose calculations from past results without losing context.
 historyList.addEventListener('click', (e) => {
   const item = e.target.closest('.history-item');
   if (!item) return;
-  currentInput = item.dataset.result;
-  currentExpression = '';
-  lastResult = parseFloat(item.dataset.result);
-  lastExprDisplay = null;
+  const result = item.dataset.result;
+
+  if (currentExpression && currentInput === '') {
+    // Mid-expression: insert history result as the next operand
+    currentInput = result;
+    lastResult = null;
+    lastExprDisplay = null;
+  } else {
+    // No active expression: load the history result and show its original expression
+    currentInput = result;
+    currentExpression = '';
+    lastResult = parseFloat(result);
+    lastExprDisplay = item.dataset.expression
+      ? item.dataset.expression + ' = ' + result
+      : null;
+  }
   updateDisplay();
 });
 
