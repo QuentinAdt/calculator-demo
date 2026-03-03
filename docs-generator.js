@@ -22,6 +22,20 @@ function escapeHtml(str) {
 }
 
 /**
+ * Parse a named section from a JSDoc comment block.
+ * Matches content between the section header and the next section, blank
+ * comment line, or end of comment — providing a consistent boundary regex
+ * for all sections.
+ */
+function parseSection(comment, header, itemPattern, transform) {
+  const sectionMatch = comment.match(
+    new RegExp(`${header}.*?:([\\s\\S]*?)(?=\\n \\* \\n|\\n \\* [A-Z]|\\*\\/)`)
+  );
+  if (!sectionMatch) return [];
+  return sectionMatch[1].match(itemPattern)?.map(transform) || [];
+}
+
+/**
  * Generate documentation from the calculator source code.
  * Parses JSDoc-style comments and function signatures.
  */
@@ -41,23 +55,9 @@ export function generateDocs() {
   const topCommentMatch = source.match(/^\/\*\*([\s\S]*?)\*\//);
   const topComment = topCommentMatch ? topCommentMatch[1] : '';
 
-  // Parse intentional bugs
-  const bugsSection = topComment.match(/INTENTIONAL BUGS.*?:([\s\S]*?)(?=\n \* \n|\n \* [A-Z]|\*\/)/);
-  const bugs = bugsSection
-    ? bugsSection[1].match(/\d+\..+/g)?.map(b => b.trim()) || []
-    : [];
-
-  // Parse missing features
-  const featuresSection = topComment.match(/MISSING FEATURES.*?:([\s\S]*?)(?=\n \* \n|\n \*\/|\*\/)/);
-  const missingFeatures = featuresSection
-    ? featuresSection[1].match(/- .+/g)?.map(f => f.replace(/^- /, '').trim()) || []
-    : [];
-
-  // Parse changelog entries
-  const changelogSection = topComment.match(/CHANGELOG.*?:([\s\S]*?)(?=\n \* \n|\n \*\/|\*\/)/);
-  const changelog = changelogSection
-    ? changelogSection[1].match(/- .+/g)?.map(c => c.replace(/^- /, '').trim()) || []
-    : [];
+  const bugs = parseSection(topComment, 'INTENTIONAL BUGS', /\d+\..+/g, b => b.trim());
+  const missingFeatures = parseSection(topComment, 'MISSING FEATURES', /- .+/g, f => f.replace(/^- /, '').trim());
+  const changelog = parseSection(topComment, 'CHANGELOG', /- .+/g, c => c.replace(/^- /, '').trim());
 
   // Extract functions
   const functions = [];
