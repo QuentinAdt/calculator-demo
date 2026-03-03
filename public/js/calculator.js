@@ -587,11 +587,30 @@ const displayContainer = document.querySelector('.display');
 function copyResult() {
   const text = currentInput;
   if (!text || text === '0' || text === 'Error' || text === 'Cannot divide by zero') return;
-  navigator.clipboard.writeText(text).then(() => {
+  function onCopySuccess() {
     displayContainer.classList.add('display-copied');
     setTimeout(() => displayContainer.classList.remove('display-copied'), 1200);
     announce('Copied ' + formatNumber(text) + ' to clipboard');
-  }).catch(() => {});
+  }
+  function fallbackCopy() {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) { onCopySuccess(); return; }
+    } catch (_) { /* fallback also failed */ }
+    announce('Could not copy to clipboard');
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(onCopySuccess).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
 }
 displayContainer.addEventListener('click', copyResult);
 displayContainer.addEventListener('keydown', (e) => {
