@@ -111,6 +111,9 @@ function friendlyOperators(str) {
   return str.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−');
 }
 
+// Spoken names for operators — used by screen reader announcements
+const spokenOperators = { '+': 'plus', '-': 'minus', '*': 'times', '/': 'divided by' };
+
 const MAX_HISTORY = 50;
 const MAX_INPUT_LENGTH = 15; // Cap manual input to stay within JS Number precision
 
@@ -282,6 +285,7 @@ function handleNumber(value) {
   } else {
     currentInput += value;
   }
+  announce(currentInput);
   updateDisplay();
 }
 
@@ -291,12 +295,14 @@ function handleDecimal() {
     currentInput = '0.';
     currentExpression = '';
     lastResult = null;
+    announce('0 point');
     updateDisplay();
     return;
   }
   if (!currentInput.includes('.') && currentInput.length < MAX_INPUT_LENGTH) {
     currentInput += '.';
   }
+  announce(currentInput.replace('.', ' point '));
   updateDisplay();
 }
 
@@ -305,6 +311,7 @@ function handleOpenParen() {
     currentInput = '';
     currentExpression = '( ';
     lastResult = null;
+    announce('open parenthesis');
     updateDisplay();
     return;
   }
@@ -320,6 +327,7 @@ function handleOpenParen() {
     currentExpression += '* ';
   }
   currentExpression += '( ';
+  announce('open parenthesis');
   updateDisplay();
 }
 
@@ -332,6 +340,7 @@ function handleCloseParen() {
   } else {
     currentExpression += ') ';
   }
+  announce('close parenthesis');
   updateDisplay();
 }
 
@@ -355,6 +364,7 @@ function handleOperator(op) {
     currentExpression += `${currentInput} ${op} `;
     currentInput = '';
   }
+  announce(spokenOperators[op] || op);
   updateDisplay();
 }
 
@@ -369,7 +379,9 @@ function handleEquals() {
 
     // Catch division by zero (Infinity) and invalid operations (NaN)
     if (!isFinite(result)) {
-      setErrorState(result !== result ? 'Error' : 'Cannot divide by zero');
+      const msg = result !== result ? 'Error' : 'Cannot divide by zero';
+      setErrorState(msg);
+      announce(msg);
       updateDisplay();
       return;
     }
@@ -384,8 +396,10 @@ function handleEquals() {
     lastResult = result;
     addToHistory(displayExpr, displayResult);
     lastExprDisplay = fullExpr + ' = ' + displayResult;
+    announce('Result: ' + formatNumber(displayResult));
   } catch (e) {
     setErrorState('Error');
+    announce('Error');
   }
   updateDisplay();
 }
@@ -394,6 +408,7 @@ function handleClear() {
   resetCalculatorState();
   // BUG #2: "C" button does NOT clear the history
   // It should also call: history = []; renderHistory();
+  announce('Cleared');
   updateDisplay();
 }
 
@@ -408,6 +423,7 @@ function handleBackspace() {
   } else {
     currentInput = '0';
   }
+  announce(currentInput);
   updateDisplay();
 }
 
@@ -429,6 +445,7 @@ function handlePercent() {
         if (isFinite(base)) {
           currentInput = String(parseFloat((base * num / 100).toPrecision(12)));
           lastResult = null;
+          announce(formatNumber(currentInput));
           updateDisplay();
           return;
         }
@@ -438,6 +455,7 @@ function handlePercent() {
 
   currentInput = String(parseFloat((num / 100).toPrecision(12)));
   lastResult = null;
+  announce(formatNumber(currentInput));
   updateDisplay();
 }
 
@@ -505,6 +523,7 @@ clearHistoryBtn.addEventListener('click', () => {
   history = [];
   saveHistory();
   renderHistory();
+  announce('History cleared');
 });
 
 // Pre-cache button elements for O(1) lookup — avoids querySelector on every keypress
