@@ -30,13 +30,20 @@ function safeEval(expr) {
   function peek() { return tokens[pos]; }
   function consume() { return tokens[pos++]; }
 
+  // Round intermediate results to 14 significant digits to prevent
+  // IEEE 754 error accumulation across chained operations (e.g. 0.1+0.2-0.3).
+  // Final display rounding uses 12 digits, so the 2-digit margin absorbs residual noise.
+  function roundIntermediate(val) {
+    return isFinite(val) ? parseFloat(val.toPrecision(14)) : val;
+  }
+
   // expression = term (('+' | '-') term)*
   function parseExpr() {
     let val = parseTerm();
     while (peek() === '+' || peek() === '-') {
       const op = consume();
       const right = parseTerm();
-      val = op === '+' ? val + right : val - right;
+      val = roundIntermediate(op === '+' ? val + right : val - right);
     }
     return val;
   }
@@ -47,7 +54,7 @@ function safeEval(expr) {
     while (peek() === '*' || peek() === '/') {
       const op = consume();
       const right = parseFactor();
-      val = op === '*' ? val * right : val / right;
+      val = roundIntermediate(op === '*' ? val * right : val / right);
     }
     return val;
   }
