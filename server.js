@@ -153,9 +153,24 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
 // The combined HTML is cached briefly so auto-updater changes are picked up.
 const HTML_PATH = join(__dirname, 'public', 'index.html');
 const CSS_PATH = join(__dirname, 'public', 'css', 'style.css');
+const JS_DIR = join(__dirname, 'public', 'js');
 let cachedInlinedHtml = null;
 let htmlCacheTime = 0;
 const HTML_CACHE_TTL = 10_000; // 10 seconds
+
+// Compute short content hashes for JS files — used as cache-busting version
+// query parameters so browsers can cache aggressively with immutable max-age.
+let jsVersions = {};
+function computeJsVersions() {
+  for (const file of ['calculator.js', 'feedback-loader.js']) {
+    try {
+      const content = readFileSync(join(JS_DIR, file));
+      jsVersions[file] = crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
+    } catch {
+      delete jsVersions[file];
+    }
+  }
+}
 
 function getInlinedHtml() {
   const now = Date.now();
@@ -178,21 +193,41 @@ function getInlinedHtml() {
     console.error('[server] Failed to read index.html:', err.message);
     return null;
   }
+  // Fingerprint JS URLs with content hashes for long-term immutable caching.
+  // When auto-updater modifies a file, the hash changes within HTML_CACHE_TTL
+  // and browsers fetch the new version automatically.
+  computeJsVersions();
+  for (const [file, hash] of Object.entries(jsVersions)) {
+    cachedInlinedHtml = cachedInlinedHtml.replace(
+      `/js/${file}`,
+      `/js/${file}?v=${hash}`
+    );
+  }
   htmlCacheTime = now;
   return cachedInlinedHtml;
 }
 
 // Serve static files with tiered caching:
 // - HTML: served via custom handler below (with inlined CSS)
-// - JS: always revalidate (picks up auto-updater patches immediately)
+// - JS (versioned ?v=hash): immutable 1-year cache (hash changes on file update)
+// - JS (unversioned): always revalidate (picks up auto-updater patches immediately)
 // - CSS/images/assets: cache 5 min, then revalidate via ETag/304
 app.use(express.static(join(__dirname, 'public'), {
   index: false, // Don't auto-serve index.html — handled by custom route below
   etag: true,
   lastModified: true,
-  setHeaders: (res, path) => {
-    if (path.endsWith('.html') || path.endsWith('.js')) {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
       res.set('Cache-Control', 'no-cache');
+    } else if (filePath.endsWith('.js')) {
+      // Versioned JS (with ?v=<hash>) is immutable — the hash guarantees
+      // content uniqueness so browsers can skip revalidation entirely.
+      // Unversioned JS still revalidates for direct/legacy access.
+      if (res.req && res.req.query && res.req.query.v) {
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+      } else {
+        res.set('Cache-Control', 'no-cache');
+      }
     } else {
       res.set('Cache-Control', 'public, max-age=300');
     }
