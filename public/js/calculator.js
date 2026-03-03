@@ -376,6 +376,7 @@ historyList.addEventListener('click', (e) => {
   if (!item) return;
   currentInput = item.dataset.result;
   currentExpression = '';
+  lastResult = parseFloat(item.dataset.result);
   updateDisplay();
 });
 
