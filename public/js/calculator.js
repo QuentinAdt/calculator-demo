@@ -83,6 +83,20 @@ function safeEval(expr) {
   return result;
 }
 
+// Format a number string with thousand separators for display (e.g. "1234567" → "1,234,567")
+function formatNumber(str) {
+  if (!str || str.includes('e') || str.includes('E')) return str;
+  if (isNaN(Number(str))) return str;
+  const parts = str.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+}
+
+// Format all bare numbers within an expression string
+function formatExprNumbers(expr) {
+  return expr.replace(/\d+\.?\d*/g, (m) => formatNumber(m));
+}
+
 const MAX_HISTORY = 50;
 const MAX_INPUT_LENGTH = 15; // Cap manual input to stay within JS Number precision
 
@@ -117,10 +131,13 @@ function saveHistory() {
 }
 
 function updateDisplay() {
+  // Format result with thousand separators for readability (display only, not state)
+  const formattedInput = formatNumber(currentInput);
+
   // Only write to DOM when the display text actually changed
-  if (prevDisplayText !== currentInput) {
-    display.textContent = currentInput;
-    prevDisplayText = currentInput;
+  if (prevDisplayText !== formattedInput) {
+    display.textContent = formattedInput;
+    prevDisplayText = formattedInput;
   }
 
   // Show live preview of expression result while typing
@@ -136,8 +153,8 @@ function updateDisplay() {
     // After pressing equals, keep showing the completed expression (e.g. "5 * 3 = 15")
     exprText = lastExprDisplay;
   }
-  // Replace raw operators with friendly symbols to match the button labels (× ÷ −)
-  const friendlyExpr = exprText
+  // Format numbers and replace raw operators with friendly symbols (× ÷ −)
+  const friendlyExpr = formatExprNumbers(exprText)
     .replace(/\*/g, '×')
     .replace(/\//g, '÷')
     .replace(/-/g, '−');
@@ -146,8 +163,8 @@ function updateDisplay() {
     prevExprText = friendlyExpr;
   }
 
-  // Auto-scale result font size to fit long numbers
-  const len = currentInput.length;
+  // Auto-scale result font size to fit long numbers (use formatted length for accurate sizing)
+  const len = formattedInput.length;
   const maxChars = 9;
   const baseFontSize = 2;
   const minFontSize = 0.9;
@@ -187,11 +204,11 @@ function createHistoryItem(item) {
 
   const expr = document.createElement('div');
   expr.className = 'expr';
-  expr.textContent = item.expression;
+  expr.textContent = formatExprNumbers(item.expression);
 
   const res = document.createElement('div');
   res.className = 'res';
-  res.textContent = '= ' + item.result;
+  res.textContent = '= ' + formatNumber(item.result);
 
   div.appendChild(expr);
   div.appendChild(res);
