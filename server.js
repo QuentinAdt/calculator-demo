@@ -97,17 +97,22 @@ setInterval(() => {
 
 // Webhook endpoint
 app.post('/api/webhook', webhookRateLimit, (req, res) => {
-  // IP whitelist
-  const clientIp = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  // IP whitelist — use only req.ip (respects Express trust proxy setting) or
+  // direct socket address; never trust the user-controlled X-Forwarded-For header
+  const clientIp = req.ip || req.connection.remoteAddress;
   const normalizedIp = clientIp.replace(/^::ffff:/, '');
   if (!ALLOWED_IPS.includes(normalizedIp) && normalizedIp !== '127.0.0.1') {
     console.log(`[webhook] Rejected IP: ${normalizedIp}`);
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  // Verify HMAC signature using raw body
-  const signature = req.headers['x-webhook-signature'];
-  if (WEBHOOK_SECRET && signature) {
+  // Verify HMAC signature using raw body — require signature when secret is configured
+  if (WEBHOOK_SECRET) {
+    const signature = req.headers['x-webhook-signature'];
+    if (!signature) {
+      console.log('[webhook] Missing signature');
+      return res.status(401).json({ error: 'Missing signature' });
+    }
     const bodyToVerify = req.rawBody || JSON.stringify(req.body);
     const expected = crypto.createHmac('sha256', WEBHOOK_SECRET)
       .update(bodyToVerify)
@@ -120,7 +125,21 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
     }
   }
 
-  console.log(`[webhook] Received: ${req.body?.event} — ${req.body?.request?.category}`);
+  // Validate payload structure before processing
+  const { event, request: feedbackReq } = req.body || {};
+  if (!event || typeof event !== 'string') {
+    return res.status(400).json({ error: 'Invalid payload: missing event' });
+  }
+  if (event === 'feedback.qualified') {
+    if (!feedbackReq || typeof feedbackReq !== 'object' || Array.isArray(feedbackReq)) {
+      return res.status(400).json({ error: 'Invalid payload: missing request' });
+    }
+    if (!['BUG', 'FEATURE', 'QUESTION'].includes(feedbackReq.category)) {
+      return res.status(400).json({ error: 'Invalid payload: invalid category' });
+    }
+  }
+
+  console.log(`[webhook] Received: ${event} — ${feedbackReq?.category}`);
   res.json({ received: true });
 
   // Process asynchronously
