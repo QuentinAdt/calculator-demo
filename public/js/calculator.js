@@ -439,6 +439,10 @@ historyList.addEventListener('click', (e) => {
       ? item.dataset.expression + ' = ' + result
       : null;
   }
+  // Flash the clicked item to confirm the reuse action
+  clearTimeout(item._flashTimer);
+  item.classList.add('history-item-used');
+  item._flashTimer = setTimeout(() => item.classList.remove('history-item-used'), 400);
   updateDisplay();
 });
 
