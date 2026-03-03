@@ -115,7 +115,11 @@ function updateDisplay() {
       }
     } catch (e) { /* expression not yet complete, skip preview */ }
   }
-  expression.textContent = exprText;
+  // Replace raw operators with friendly symbols to match the button labels (× ÷ −)
+  expression.textContent = exprText
+    .replace(/\*/g, '×')
+    .replace(/\//g, '÷')
+    .replace(/-/g, '−');
 
   // Auto-scale result font size to fit long numbers
   const len = currentInput.length;
