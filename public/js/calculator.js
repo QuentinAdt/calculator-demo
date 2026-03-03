@@ -235,6 +235,7 @@ function handleOpenParen() {
 }
 
 function handleCloseParen() {
+  if (lastResult === 'error') return;
   lastResult = null;
   if (currentInput !== '') {
     currentExpression += `${currentInput} ) `;
@@ -249,6 +250,8 @@ function handleOperator(op) {
   if (op === '(') return handleOpenParen();
   if (op === ')') return handleCloseParen();
 
+  // After an error, ignore operators — there's no valid operand to chain from
+  if (lastResult === 'error') return;
   lastResult = null;
   if (currentExpression && currentInput === '') {
     if (currentExpression.trimEnd().endsWith(')')) {
@@ -281,6 +284,7 @@ function handleEquals() {
     if (!isFinite(result)) {
       currentInput = result !== result ? 'Error' : 'Cannot divide by zero';
       currentExpression = '';
+      lastResult = 'error';
       updateDisplay();
       return;
     }
@@ -297,6 +301,7 @@ function handleEquals() {
   } catch (e) {
     currentInput = 'Error';
     currentExpression = '';
+    lastResult = 'error';
   }
   updateDisplay();
 }
