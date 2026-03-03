@@ -9,6 +9,19 @@ const CALCULATOR_JS = join(__dirname, 'public', 'js', 'calculator.js');
 const DOCS_HTML = join(__dirname, 'public', 'docs', 'index.html');
 
 /**
+ * Escape HTML special characters to prevent XSS when interpolating
+ * dynamic content (parsed from source comments) into generated HTML.
+ */
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * Generate documentation from the calculator source code.
  * Parses JSDoc-style comments and function signatures.
  */
@@ -115,25 +128,25 @@ export function generateDocs() {
 
   <h2>Known Issues</h2>
   ${bugs.length > 0
-    ? `<ol>${bugs.map(b => `<li><span class="badge badge-bug">Bug</span> ${b.replace(/^\d+\.\s*/, '')}</li>`).join('\n')}</ol>`
+    ? `<ol>${bugs.map(b => `<li><span class="badge badge-bug">Bug</span> ${escapeHtml(b.replace(/^\d+\.\s*/, ''))}</li>`).join('\n')}</ol>`
     : '<p>No known issues.</p>'}
 
   <h2>Missing Features</h2>
   ${missingFeatures.length > 0
-    ? `<ul>${missingFeatures.map(f => `<li><span class="badge badge-feature">Planned</span> ${f}</li>`).join('\n')}</ul>`
+    ? `<ul>${missingFeatures.map(f => `<li><span class="badge badge-feature">Planned</span> ${escapeHtml(f)}</li>`).join('\n')}</ul>`
     : '<p>All planned features have been implemented.</p>'}
 
   ${changelog.length > 0 ? `
   <h2>Changelog</h2>
   <ul>
-    ${changelog.map(c => `<li><span class="badge badge-fixed">Fixed</span> ${c}</li>`).join('\n    ')}
+    ${changelog.map(c => `<li><span class="badge badge-fixed">Fixed</span> ${escapeHtml(c)}</li>`).join('\n    ')}
   </ul>
   ` : ''}
 
   <h2>Internal Functions</h2>
   <table>
     <tr><th>Function</th><th>Parameters</th></tr>
-    ${functions.map(f => `<tr><td><code>${f.name}()</code></td><td>${f.params || 'none'}</td></tr>`).join('\n    ')}
+    ${functions.map(f => `<tr><td><code>${escapeHtml(f.name)}()</code></td><td>${escapeHtml(f.params || 'none')}</td></tr>`).join('\n    ')}
   </table>
 
   <h2>Integration</h2>

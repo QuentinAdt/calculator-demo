@@ -32,7 +32,7 @@
 <body>
   <a href="/" class="back">&larr; Back to Calculator</a>
   <h1>Calculator Documentation</h1>
-  <p class="updated">Auto-generated on 2026-02-19 from source code</p>
+  <p class="updated">Auto-generated on 2026-03-03 from source code</p>
 
   <h2>Features</h2>
   <ul>
@@ -43,6 +43,7 @@
     <li>Backspace to delete last digit</li>
     <li>Clear (C) button to reset current calculation</li>
     <li>Parentheses support for grouped expressions</li>
+    <li>Percentage (%) conversion</li>
   </ul>
 
   <h2>Operations</h2>
@@ -52,12 +53,13 @@
     <tr><td><code>−</code></td><td>Subtraction</td><td>Subtracts second number from first</td></tr>
     <tr><td><code>×</code></td><td>Multiplication</td><td>Multiplies two numbers</td></tr>
     <tr><td><code>÷</code></td><td>Division</td><td>Divides first number by second</td></tr>
+    <tr><td><code>%</code></td><td>Percent</td><td>Converts number to percentage (divides by 100)</td></tr>
   </table>
 
   <h2>Known Issues</h2>
-  <ol><li><span class="badge badge-bug">Bug</span> Division by zero shows "NaN" instead of an error message</li>
-<li><span class="badge badge-bug">Bug</span> "C" button does NOT clear the history</li>
-<li><span class="badge badge-bug">Bug</span> Floating-point imprecision (0.1 + 0.2 = 0.30000000000000004)</li></ol>
+  <ol><li><span class="badge badge-bug">Bug</span> (FIXED) Division by zero now shows &quot;Cannot divide by zero&quot; instead of &quot;NaN&quot;/&quot;Infinity&quot;</li>
+<li><span class="badge badge-bug">Bug</span> &quot;C&quot; button does NOT clear the history</li>
+<li><span class="badge badge-bug">Bug</span> (FIXED) Floating-point imprecision — results now rounded to 12 significant digits</li></ol>
 
   <h2>Missing Features</h2>
   <p>All planned features have been implemented.</p>
@@ -67,21 +69,40 @@
   <h2>Internal Functions</h2>
   <table>
     <tr><th>Function</th><th>Parameters</th></tr>
+    <tr><td><code>announce()</code></td><td>message</td></tr>
+    <tr><td><code>safeEval()</code></td><td>expr</td></tr>
+    <tr><td><code>peek()</code></td><td>none</td></tr>
+    <tr><td><code>consume()</code></td><td>none</td></tr>
+    <tr><td><code>roundIntermediate()</code></td><td>val</td></tr>
+    <tr><td><code>parseExpr()</code></td><td>none</td></tr>
+    <tr><td><code>parseTerm()</code></td><td>none</td></tr>
+    <tr><td><code>parseFactor()</code></td><td>none</td></tr>
+    <tr><td><code>formatNumber()</code></td><td>str</td></tr>
+    <tr><td><code>formatExprNumbers()</code></td><td>expr</td></tr>
+    <tr><td><code>friendlyOperators()</code></td><td>str</td></tr>
+    <tr><td><code>resetCalculatorState()</code></td><td>none</td></tr>
+    <tr><td><code>setErrorState()</code></td><td>message</td></tr>
+    <tr><td><code>loadHistory()</code></td><td>none</td></tr>
+    <tr><td><code>saveHistory()</code></td><td>none</td></tr>
     <tr><td><code>updateDisplay()</code></td><td>none</td></tr>
     <tr><td><code>addToHistory()</code></td><td>expr, result</td></tr>
+    <tr><td><code>createHistoryItem()</code></td><td>item</td></tr>
     <tr><td><code>renderHistory()</code></td><td>none</td></tr>
     <tr><td><code>handleNumber()</code></td><td>value</td></tr>
     <tr><td><code>handleDecimal()</code></td><td>none</td></tr>
+    <tr><td><code>handleOpenParen()</code></td><td>none</td></tr>
+    <tr><td><code>handleCloseParen()</code></td><td>none</td></tr>
     <tr><td><code>handleOperator()</code></td><td>op</td></tr>
     <tr><td><code>handleEquals()</code></td><td>none</td></tr>
     <tr><td><code>handleClear()</code></td><td>none</td></tr>
     <tr><td><code>handleBackspace()</code></td><td>none</td></tr>
+    <tr><td><code>handlePercent()</code></td><td>none</td></tr>
+    <tr><td><code>flashButton()</code></td><td>action, value</td></tr>
+    <tr><td><code>copyResult()</code></td><td>none</td></tr>
   </table>
 
   <h2>Integration</h2>
   <p>This calculator integrates with <a href="https://feedbackloopai.ovh" target="_blank">FeedbackLoop AI</a> for automated bug reporting and feature requests. The feedback widget collects user reports, qualifies them with AI, and triggers an autonomous fix pipeline.</p>
 
-  <script src="https://test1.116.202.8.41.feedbackloopai.ovh/unified/feedbackloop.js"
-    data-api-key="fl_61224563e54b34ec31061086516635bd"></script>
 </body>
 </html>
