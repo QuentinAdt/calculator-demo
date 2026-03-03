@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import vm from 'vm';
@@ -11,6 +11,7 @@ const __dirname = dirname(__filename);
 function getEnv(key) { return process.env[key] || ''; }
 
 const CALCULATOR_JS_PATH = join(__dirname, 'public', 'js', 'calculator.js');
+const CALCULATOR_JS_BACKUP = join(__dirname, 'public', 'js', 'calculator.js.bak');
 
 // Max lengths for user-controlled webhook fields interpolated into AI prompts.
 // Truncation limits prompt injection surface and prevents excessively large payloads.
@@ -47,7 +48,13 @@ export async function handleWebhook(payload) {
   }
 
   // Read current calculator code
-  const currentCode = readFileSync(CALCULATOR_JS_PATH, 'utf-8');
+  let currentCode;
+  try {
+    currentCode = readFileSync(CALCULATOR_JS_PATH, 'utf-8');
+  } catch (err) {
+    console.error(`[auto-updater] Failed to read calculator.js: ${err.message}`);
+    return;
+  }
 
   // Build prompt based on category
   const prompt = buildPatchPrompt(category, request, currentCode);
@@ -59,9 +66,28 @@ export async function handleWebhook(payload) {
     return;
   }
 
-  // Apply patch
-  writeFileSync(CALCULATOR_JS_PATH, patchedCode, 'utf-8');
-  console.log('[auto-updater] Patch applied to calculator.js');
+  // Create backup before applying patch so we can roll back on write failure
+  try {
+    copyFileSync(CALCULATOR_JS_PATH, CALCULATOR_JS_BACKUP);
+  } catch (err) {
+    console.error(`[auto-updater] Failed to create backup, aborting patch: ${err.message}`);
+    return;
+  }
+
+  // Apply patch with rollback on failure
+  try {
+    writeFileSync(CALCULATOR_JS_PATH, patchedCode, 'utf-8');
+    console.log('[auto-updater] Patch applied to calculator.js');
+  } catch (err) {
+    console.error(`[auto-updater] Failed to write patched code: ${err.message}`);
+    try {
+      copyFileSync(CALCULATOR_JS_BACKUP, CALCULATOR_JS_PATH);
+      console.log('[auto-updater] Rolled back to backup');
+    } catch (rollbackErr) {
+      console.error(`[auto-updater] CRITICAL: Rollback also failed: ${rollbackErr.message}`);
+    }
+    return;
+  }
 
   // Regenerate docs
   try {
