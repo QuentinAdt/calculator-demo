@@ -83,6 +83,7 @@ let currentInput = '0';
 let currentExpression = '';
 let history = loadHistory();
 let lastResult = null;
+let lastExprDisplay = null; // Completed expression shown after pressing equals
 
 // Track previous display state to skip redundant DOM writes
 let prevDisplayText = null;
@@ -124,6 +125,9 @@ function updateDisplay() {
         exprText = currentExpression + currentInput + ' = ' + parseFloat(result.toPrecision(12));
       }
     } catch (e) { /* expression not yet complete, skip preview */ }
+  } else if (lastExprDisplay) {
+    // After pressing equals, keep showing the completed expression (e.g. "5 * 3 = 15")
+    exprText = lastExprDisplay;
   }
   // Replace raw operators with friendly symbols to match the button labels (× ÷ −)
   const friendlyExpr = exprText
@@ -204,6 +208,7 @@ function renderHistory() {
 }
 
 function handleNumber(value) {
+  lastExprDisplay = null;
   if (lastResult !== null) {
     currentInput = value;
     currentExpression = '';
@@ -222,6 +227,7 @@ function handleNumber(value) {
 }
 
 function handleDecimal() {
+  lastExprDisplay = null;
   if (lastResult !== null) {
     currentInput = '0.';
     currentExpression = '';
@@ -268,6 +274,7 @@ function handleCloseParen() {
 }
 
 function handleOperator(op) {
+  lastExprDisplay = null;
   if (op === '(') return handleOpenParen();
   if (op === ')') return handleCloseParen();
 
@@ -306,6 +313,7 @@ function handleEquals() {
       currentInput = result !== result ? 'Error' : 'Cannot divide by zero';
       currentExpression = '';
       lastResult = 'error';
+      lastExprDisplay = null;
       updateDisplay();
       return;
     }
@@ -319,15 +327,18 @@ function handleEquals() {
     currentExpression = '';
     lastResult = result;
     addToHistory(displayExpr, displayResult);
+    lastExprDisplay = fullExpr + ' = ' + displayResult;
   } catch (e) {
     currentInput = 'Error';
     currentExpression = '';
     lastResult = 'error';
+    lastExprDisplay = null;
   }
   updateDisplay();
 }
 
 function handleClear() {
+  lastExprDisplay = null;
   currentInput = '0';
   currentExpression = '';
   lastResult = null;
@@ -337,6 +348,7 @@ function handleClear() {
 }
 
 function handleBackspace() {
+  lastExprDisplay = null;
   if (lastResult !== null) {
     handleClear();
     return;
@@ -350,6 +362,7 @@ function handleBackspace() {
 }
 
 function handlePercent() {
+  lastExprDisplay = null;
   const num = parseFloat(currentInput);
   if (isNaN(num)) return;
 
@@ -403,6 +416,7 @@ historyList.addEventListener('click', (e) => {
   currentInput = item.dataset.result;
   currentExpression = '';
   lastResult = parseFloat(item.dataset.result);
+  lastExprDisplay = null;
   updateDisplay();
 });
 
