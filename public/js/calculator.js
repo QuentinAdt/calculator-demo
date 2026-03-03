@@ -8,7 +8,7 @@
  *
  * MISSING FEATURES (for feature requests):
  * - No dark/light theme toggle (always dark)
- * - No percentage (%) button
+ * - (ADDED) Percentage (%) button — divides current value by 100
  */
 
 const display = document.getElementById('result');
@@ -303,6 +303,17 @@ function handleBackspace() {
   updateDisplay();
 }
 
+function handlePercent() {
+  if (currentInput === 'Error') return;
+  const num = parseFloat(currentInput);
+  if (!isFinite(num)) return;
+  const result = num / 100;
+  // Round to 12 significant digits to match handleEquals precision
+  currentInput = String(parseFloat(result.toPrecision(12)));
+  lastResult = null;
+  updateDisplay();
+}
+
 // Button click handlers (event delegation — single listener for all buttons)
 document.querySelector('.buttons').addEventListener('click', (e) => {
   const btn = e.target.closest('.btn');
@@ -317,6 +328,7 @@ document.querySelector('.buttons').addEventListener('click', (e) => {
     case 'equals': handleEquals(); break;
     case 'clear': handleClear(); break;
     case 'backspace': handleBackspace(); break;
+    case 'percent': handlePercent(); break;
   }
 });
 
@@ -397,6 +409,10 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     flashButton('operator', e.key);
     handleOperator(e.key);
+  } else if (e.key === '%') {
+    e.preventDefault();
+    flashButton('percent');
+    handlePercent();
   }
 });
 

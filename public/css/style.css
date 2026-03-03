@@ -183,6 +183,7 @@ body {
   background: var(--equals);
   color: #fff;
   border-color: var(--equals);
+  grid-column: 1 / -1;
 }
 .btn-equals:hover { background: var(--equals-hover); }
 
