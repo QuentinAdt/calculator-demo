@@ -14,6 +14,15 @@ const display = document.getElementById('result');
 const expression = document.getElementById('expression');
 const historyList = document.getElementById('historyList');
 const clearHistoryBtn = document.getElementById('clearHistory');
+const a11yStatus = document.getElementById('a11yStatus');
+
+// Announce a message to screen readers via the aria-live status region
+function announce(message) {
+  if (!a11yStatus) return;
+  a11yStatus.textContent = '';
+  // Force a DOM mutation so the live region re-announces even if the text is the same
+  requestAnimationFrame(() => { a11yStatus.textContent = message; });
+}
 
 /**
  * Safe math expression evaluator — replaces eval() to prevent arbitrary code execution.
@@ -201,6 +210,9 @@ function createHistoryItem(item) {
   div.className = 'history-item';
   div.dataset.result = item.result;
   div.dataset.expression = item.expression;
+  div.setAttribute('role', 'button');
+  div.setAttribute('tabindex', '0');
+  div.setAttribute('aria-label', formatExprNumbers(item.expression) + ' equals ' + formatNumber(item.result) + '. Activate to reuse.');
 
   const expr = document.createElement('div');
   expr.className = 'expr';
@@ -467,7 +479,18 @@ historyList.addEventListener('click', (e) => {
   clearTimeout(item._flashTimer);
   item.classList.add('history-item-used');
   item._flashTimer = setTimeout(() => item.classList.remove('history-item-used'), 400);
+  announce('Reused result ' + formatNumber(result));
   updateDisplay();
+});
+
+// Keyboard activation for history items (Enter / Space trigger click)
+historyList.addEventListener('keydown', (e) => {
+  const item = e.target.closest('.history-item');
+  if (!item) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    item.click();
+  }
 });
 
 // Clear history button
@@ -529,15 +552,23 @@ document.addEventListener('keydown', (e) => {
   binding.handler(binding.value);
 });
 
-// Copy result to clipboard when display is clicked/tapped
+// Copy result to clipboard when display is clicked/tapped or activated via keyboard
 const displayContainer = document.querySelector('.display');
-displayContainer.addEventListener('click', () => {
+function copyResult() {
   const text = currentInput;
   if (!text || text === '0' || text === 'Error' || text === 'Cannot divide by zero') return;
   navigator.clipboard.writeText(text).then(() => {
     displayContainer.classList.add('display-copied');
     setTimeout(() => displayContainer.classList.remove('display-copied'), 1200);
+    announce('Copied ' + formatNumber(text) + ' to clipboard');
   }).catch(() => {});
+}
+displayContainer.addEventListener('click', copyResult);
+displayContainer.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    copyResult();
+  }
 });
 
 renderHistory();

@@ -56,7 +56,7 @@
 
     <div class="calculator-container">
       <div class="calculator" role="group" aria-label="Calculator">
-        <div class="display" title="Click to copy result">
+        <div class="display" title="Click to copy result" tabindex="0" role="button" aria-label="Copy result to clipboard">
           <div class="display-expression" id="expression" aria-label="Expression"></div>
           <div class="display-result" id="result" aria-live="polite">0</div>
         </div>
@@ -119,6 +119,8 @@
       </div>
     </div>
   </main>
+
+  <div class="sr-only" id="a11yStatus" aria-live="polite" aria-atomic="true"></div>
 
   <footer class="footer">
     <p>Demo for <a href="https://feedbackloopai.ovh" target="_blank">FeedbackLoop AI</a> — AI-powered feedback qualification & autonomous fix pipeline</p>
