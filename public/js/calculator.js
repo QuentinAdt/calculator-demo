@@ -104,7 +104,18 @@ function saveHistory() {
 
 function updateDisplay() {
   display.textContent = currentInput;
-  expression.textContent = currentExpression;
+
+  // Show live preview of expression result while typing
+  let exprText = currentExpression;
+  if (currentExpression && currentInput) {
+    try {
+      const result = safeEval(currentExpression + currentInput);
+      if (isFinite(result)) {
+        exprText = currentExpression + currentInput + ' = ' + parseFloat(result.toPrecision(12));
+      }
+    } catch (e) { /* expression not yet complete, skip preview */ }
+  }
+  expression.textContent = exprText;
 
   // Auto-scale result font size to fit long numbers
   const len = currentInput.length;
