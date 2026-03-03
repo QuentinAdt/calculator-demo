@@ -22,7 +22,7 @@ const clearHistoryBtn = document.getElementById('clearHistory');
  */
 function safeEval(expr) {
   const tokens = [];
-  const re = /(\d+\.?\d*|\.\d+|[+\-*/()])/g;
+  const re = /(\d+\.?\d*(?:e[+\-]?\d+)?|\.\d+(?:e[+\-]?\d+)?|[+\-*/()])/g;
   let m;
   while ((m = re.exec(expr)) !== null) tokens.push(m[1]);
 
@@ -94,7 +94,7 @@ function formatNumber(str) {
 
 // Format all bare numbers within an expression string
 function formatExprNumbers(expr) {
-  return expr.replace(/\d+\.?\d*/g, (m) => formatNumber(m));
+  return expr.replace(/\d+\.?\d*(?:e[+\-]?\d+)?/g, (m) => formatNumber(m));
 }
 
 const MAX_HISTORY = 50;
