@@ -283,8 +283,15 @@ async function generatePatch(prompt, currentCode, apiKey) {
 }
 
 async function updateFeedbackStatus(requestId, status, feedbackUrl, adminToken) {
+  // Defence-in-depth: reject IDs with path-traversal or URL-manipulation characters
+  // so the admin bearer token is never sent to an unintended endpoint (SSRF).
+  if (!requestId || !/^[a-zA-Z0-9_-]+$/.test(String(requestId))) {
+    console.error(`[auto-updater] Refusing status update — unsafe requestId: ${String(requestId).slice(0, 40)}`);
+    return;
+  }
+
   try {
-    const response = await fetch(`${feedbackUrl}/api/v1/admin/requests/${requestId}/status`, {
+    const response = await fetch(`${feedbackUrl}/api/v1/admin/requests/${encodeURIComponent(requestId)}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
