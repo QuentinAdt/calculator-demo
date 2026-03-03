@@ -326,8 +326,28 @@ function handleBackspace() {
 function handlePercent() {
   const num = parseFloat(currentInput);
   if (isNaN(num)) return;
-  const result = parseFloat((num / 100).toPrecision(12));
-  currentInput = String(result);
+
+  // Contextual percentage for + and - operators:
+  // "100 + 5%" → 100 + (5% of 100) = 105
+  // "200 - 10%" → 200 - (10% of 200) = 180
+  // For * and / (or no operator), just divide by 100 as usual.
+  if (currentExpression) {
+    const trimmed = currentExpression.trimEnd();
+    const lastChar = trimmed.charAt(trimmed.length - 1);
+    if (lastChar === '+' || lastChar === '-') {
+      try {
+        const base = safeEval(trimmed.slice(0, -1).trim());
+        if (isFinite(base)) {
+          currentInput = String(parseFloat((base * num / 100).toPrecision(12)));
+          lastResult = null;
+          updateDisplay();
+          return;
+        }
+      } catch (e) { /* fall through to simple percentage */ }
+    }
+  }
+
+  currentInput = String(parseFloat((num / 100).toPrecision(12)));
   lastResult = null;
   updateDisplay();
 }
