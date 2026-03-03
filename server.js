@@ -162,6 +162,7 @@ const CSS_PATH = join(__dirname, 'public', 'css', 'style.css');
 const JS_DIR = join(__dirname, 'public', 'js');
 const JS_FILES = ['calculator.js', 'feedback-loader.js'];
 let cachedInlinedHtml = null;
+let cachedHtmlEtag = null;
 
 // Mtime-based cache invalidation: only re-read and re-minify files when they
 // actually change on disk. statSync is ~0.01ms per call (negligible vs full
@@ -292,6 +293,8 @@ function getInlinedHtml() {
     );
   }
   recordMtimes(watchedPaths);
+  // Compute ETag from the final HTML content for conditional 304 responses
+  cachedHtmlEtag = '"' + crypto.createHash('md5').update(cachedInlinedHtml).digest('hex').slice(0, 16) + '"';
   return cachedInlinedHtml;
 }
 
@@ -348,7 +351,13 @@ app.get('*', (req, res) => {
   if (!html) {
     return res.status(503).type('text').send('Service temporarily unavailable');
   }
+  // Return 304 Not Modified when the browser's cached copy matches,
+  // saving bandwidth (~5-8KB gzipped) on repeat visits.
+  if (cachedHtmlEtag && req.headers['if-none-match'] === cachedHtmlEtag) {
+    return res.status(304).end();
+  }
   res.set('Cache-Control', 'no-cache');
+  res.set('ETag', cachedHtmlEtag);
   res.type('html').send(html);
 });
 
