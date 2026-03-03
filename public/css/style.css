@@ -18,6 +18,7 @@
   --equals-hover: #7c6df7;
   --clear: #e74c3c;
   --clear-hover: #ff5c4c;
+  --accent-light: #b0a4ff;
   --radius: 12px;
   --radius-sm: 8px;
 }
@@ -129,6 +130,10 @@ body {
 .display:hover {
   border-color: var(--accent);
 }
+.display:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
 .display::after {
   content: 'Copied!';
   position: absolute;
@@ -208,7 +213,7 @@ body {
 
 .btn-operator {
   background: var(--operator);
-  color: var(--accent);
+  color: var(--accent-light);
 }
 .btn-operator:hover { background: var(--operator-hover); }
 
@@ -270,7 +275,6 @@ body {
   color: var(--text-muted);
   font-size: 0.75rem;
   margin-bottom: 10px;
-  opacity: 0.6;
 }
 
 .history-list {
@@ -295,6 +299,10 @@ body {
   transition: border-color 0.2s;
 }
 .history-item:hover { border-color: var(--accent); }
+.history-item:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
 .history-item.history-item-used {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 100px rgba(108, 92, 231, 0.08);
@@ -344,7 +352,7 @@ body {
   font-size: 0.85rem;
 }
 .footer a {
-  color: var(--accent);
+  color: var(--accent-light);
   text-decoration: none;
 }
 .footer a:hover { text-decoration: underline; }
