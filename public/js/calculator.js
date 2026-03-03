@@ -139,6 +139,8 @@ function addToHistory(expr, result) {
 function createHistoryItem(item) {
   const div = document.createElement('div');
   div.className = 'history-item';
+  div.setAttribute('role', 'button');
+  div.tabIndex = 0;
   div.dataset.result = item.result;
 
   const expr = document.createElement('div');
@@ -320,13 +322,20 @@ document.querySelector('.buttons').addEventListener('click', (e) => {
   }
 });
 
-// Click history item to reuse result (event delegation — single listener for all items)
-historyList.addEventListener('click', (e) => {
+// Reuse history result on click or keyboard activation (event delegation)
+function activateHistoryItem(e) {
   const item = e.target.closest('.history-item');
   if (!item) return;
   currentInput = item.dataset.result;
   currentExpression = '';
   updateDisplay();
+}
+historyList.addEventListener('click', activateHistoryItem);
+historyList.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    activateHistoryItem(e);
+  }
 });
 
 // Clear history button
