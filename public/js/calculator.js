@@ -238,6 +238,10 @@ function handleNumber(value) {
     currentInput = value;
     currentExpression = '';
     lastResult = null;
+  } else if (currentInput === '' && currentExpression.trimEnd().endsWith(')')) {
+    // Implicit multiplication after close paren: (3)5 → (3) × 5
+    currentExpression += '* ';
+    currentInput = value;
   } else if (currentInput === '0' && value !== '0') {
     currentInput = value;
   } else if (currentInput === '0' && value === '0') {
@@ -281,6 +285,9 @@ function handleOpenParen() {
     // Implicit multiplication: 5( → 5 × (
     currentExpression += `${currentInput} * `;
     currentInput = '';
+  } else if (currentExpression.trimEnd().endsWith(')')) {
+    // Implicit multiplication after close paren: (3)(4) → (3) × (4)
+    currentExpression += '* ';
   }
   currentExpression += '( ';
   updateDisplay();
