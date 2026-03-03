@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -26,7 +26,16 @@ function escapeHtml(str) {
  * Parses JSDoc-style comments and function signatures.
  */
 export function generateDocs() {
-  const source = readFileSync(CALCULATOR_JS, 'utf-8');
+  let source;
+  try {
+    source = readFileSync(CALCULATOR_JS, 'utf-8');
+  } catch (err) {
+    const msg = err.code === 'ENOENT'
+      ? `[docs-generator] Source file not found: ${CALCULATOR_JS}`
+      : `[docs-generator] Failed to read source file: ${err.message}`;
+    console.error(msg);
+    throw new Error(msg);
+  }
 
   // Extract top comment block
   const topCommentMatch = source.match(/^\/\*\*([\s\S]*?)\*\//);
@@ -155,11 +164,25 @@ export function generateDocs() {
 </body>
 </html>`;
 
-  writeFileSync(DOCS_HTML, html, 'utf-8');
+  try {
+    mkdirSync(dirname(DOCS_HTML), { recursive: true });
+    writeFileSync(DOCS_HTML, html, 'utf-8');
+  } catch (err) {
+    const msg = err.code === 'EACCES'
+      ? `[docs-generator] Permission denied writing to: ${DOCS_HTML}`
+      : `[docs-generator] Failed to write documentation: ${err.message}`;
+    console.error(msg);
+    throw new Error(msg);
+  }
   console.log('[docs-generator] Documentation generated at', DOCS_HTML);
 }
 
 // Run directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  generateDocs();
+  try {
+    generateDocs();
+  } catch (err) {
+    console.error(`[docs-generator] ${err.message}`);
+    process.exit(1);
+  }
 }
