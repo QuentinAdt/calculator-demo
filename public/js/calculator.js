@@ -2,7 +2,7 @@
  * Calculator — FeedbackLoop AI Demo
  *
  * INTENTIONAL BUGS (for demo purposes):
- * 1. Division by zero shows "NaN" instead of an error message
+ * 1. (FIXED) Division by zero now shows "Cannot divide by zero" instead of "NaN"/"Infinity"
  * 2. "C" button does NOT clear the history
  * 3. (FIXED) Floating-point imprecision — results now rounded to 12 significant digits
  *
@@ -261,13 +261,19 @@ function handleEquals() {
     .replace(/-/g, '−');
 
   try {
-    // BUG #1: Division by zero — safeEval returns Infinity, we just show it as-is (NaN/Infinity)
-    // The "correct" behavior would be to show "Cannot divide by zero"
     const result = safeEval(fullExpr);
+
+    // Catch division by zero (Infinity) and invalid operations (NaN)
+    if (!isFinite(result)) {
+      currentInput = result !== result ? 'Error' : 'Cannot divide by zero';
+      currentExpression = '';
+      updateDisplay();
+      return;
+    }
 
     // Round to 12 significant digits to eliminate IEEE 754 floating-point artifacts
     // e.g. 0.1 + 0.2 now correctly displays 0.3 instead of 0.30000000000000004
-    const cleaned = isFinite(result) ? parseFloat(result.toPrecision(12)) : result;
+    const cleaned = parseFloat(result.toPrecision(12));
     const displayResult = String(cleaned);
 
     currentInput = displayResult;
