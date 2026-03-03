@@ -105,7 +105,10 @@ function saveHistory() {
 
 function updateDisplay() {
   display.textContent = currentInput;
-  expression.textContent = currentExpression;
+  expression.textContent = currentExpression
+    .replace(/\*/g, '×')
+    .replace(/\//g, '÷')
+    .replace(/-/g, '−');
 
   // Auto-scale result font size to fit long numbers
   const len = currentInput.length;
