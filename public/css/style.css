@@ -120,6 +120,32 @@ body {
   justify-content: flex-end;
   align-items: flex-end;
   overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.display:hover {
+  border-color: var(--accent);
+}
+.display::after {
+  content: 'Copied!';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--accent);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.display.display-copied::after {
+  opacity: 1;
 }
 .display-expression {
   font-family: var(--font-mono);
@@ -320,6 +346,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nav-link,
   .btn,
+  .display,
+  .display::after,
   .display-result,
   .history-clear,
   .history-item {
