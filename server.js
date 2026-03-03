@@ -129,10 +129,41 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
   });
 });
 
+// Inline CSS into HTML to eliminate the render-blocking stylesheet request,
+// improving First Contentful Paint (FCP) and Largest Contentful Paint (LCP).
+// The combined HTML is cached briefly so auto-updater changes are picked up.
+const HTML_PATH = join(__dirname, 'public', 'index.html');
+const CSS_PATH = join(__dirname, 'public', 'css', 'style.css');
+let cachedInlinedHtml = null;
+let htmlCacheTime = 0;
+const HTML_CACHE_TTL = 10_000; // 10 seconds
+
+function getInlinedHtml() {
+  const now = Date.now();
+  if (cachedInlinedHtml && now - htmlCacheTime < HTML_CACHE_TTL) {
+    return cachedInlinedHtml;
+  }
+  try {
+    const html = readFileSync(HTML_PATH, 'utf-8');
+    const css = readFileSync(CSS_PATH, 'utf-8');
+    cachedInlinedHtml = html.replace(
+      '<link rel="stylesheet" href="/css/style.css">',
+      `<style>${css}</style>`
+    );
+  } catch {
+    // Fallback to raw HTML if CSS read fails
+    cachedInlinedHtml = readFileSync(HTML_PATH, 'utf-8');
+  }
+  htmlCacheTime = now;
+  return cachedInlinedHtml;
+}
+
 // Serve static files with tiered caching:
-// - HTML & JS: always revalidate (picks up auto-updater patches immediately)
+// - HTML: served via custom handler below (with inlined CSS)
+// - JS: always revalidate (picks up auto-updater patches immediately)
 // - CSS/images/assets: cache 5 min, then revalidate via ETag/304
 app.use(express.static(join(__dirname, 'public'), {
+  index: false, // Don't auto-serve index.html — handled by custom route below
   etag: true,
   lastModified: true,
   setHeaders: (res, path) => {
@@ -144,14 +175,15 @@ app.use(express.static(join(__dirname, 'public'), {
   }
 }));
 
-// SPA fallback — serve index.html for clean URL navigation, 404 for missing files
+// SPA fallback — serve index.html (with inlined CSS) for clean URL navigation, 404 for missing files
 app.get('*', (req, res) => {
   // Requests with file extensions (e.g. /favicon.ico, /missing.js) are genuinely missing
   // from public/ — return 404 instead of wastefully serving the full HTML page
   if (/\.\w+$/.test(req.path)) {
     return res.status(404).end();
   }
-  res.sendFile(join(__dirname, 'public', 'index.html'));
+  res.set('Cache-Control', 'no-cache');
+  res.type('html').send(getInlinedHtml());
 });
 
 app.listen(PORT, '0.0.0.0', () => {
