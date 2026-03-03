@@ -137,6 +137,11 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
     if (!['BUG', 'FEATURE', 'QUESTION'].includes(feedbackReq.category)) {
       return res.status(400).json({ error: 'Invalid payload: invalid category' });
     }
+    // Validate request.id — it is interpolated into URLs for status updates.
+    // Allow only safe identifier characters to prevent SSRF / path traversal.
+    if (feedbackReq.id != null && !/^[a-zA-Z0-9_-]+$/.test(String(feedbackReq.id))) {
+      return res.status(400).json({ error: 'Invalid payload: malformed request id' });
+    }
   }
 
   console.log(`[webhook] Received: ${event} — ${feedbackReq?.category}`);
