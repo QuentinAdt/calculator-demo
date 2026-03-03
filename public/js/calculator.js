@@ -106,6 +106,11 @@ function formatExprNumbers(expr) {
   return expr.replace(/\d+\.?\d*(?:e[+\-]?\d+)?/g, (m) => formatNumber(m));
 }
 
+// Replace raw math operators with user-friendly Unicode symbols for display
+function friendlyOperators(str) {
+  return str.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−');
+}
+
 const MAX_HISTORY = 50;
 const MAX_INPUT_LENGTH = 15; // Cap manual input to stay within JS Number precision
 
@@ -163,10 +168,7 @@ function updateDisplay() {
     exprText = lastExprDisplay;
   }
   // Format numbers and replace raw operators with friendly symbols (× ÷ −)
-  const friendlyExpr = formatExprNumbers(exprText)
-    .replace(/\*/g, '×')
-    .replace(/\//g, '÷')
-    .replace(/-/g, '−');
+  const friendlyExpr = friendlyOperators(formatExprNumbers(exprText));
   if (prevExprText !== friendlyExpr) {
     expression.textContent = friendlyExpr;
     prevExprText = friendlyExpr;
@@ -344,10 +346,7 @@ function handleEquals() {
   if (!currentExpression && currentInput) return;
 
   const fullExpr = currentExpression + currentInput;
-  const displayExpr = fullExpr
-    .replace(/\*/g, '×')
-    .replace(/\//g, '÷')
-    .replace(/-/g, '−');
+  const displayExpr = friendlyOperators(fullExpr);
 
   try {
     const result = safeEval(fullExpr);
