@@ -257,6 +257,12 @@ app.use((err, req, res, _next) => {
   res.status(500).type('text').send('Internal server error');
 });
 
+// Catch unhandled promise rejections to prevent silent process crashes
+// (e.g. from async webhook processing or other background tasks)
+process.on('unhandledRejection', (reason) => {
+  console.error('[server] Unhandled promise rejection:', reason instanceof Error ? reason.message : reason);
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Calculator demo running at http://0.0.0.0:${PORT}`);
 });
