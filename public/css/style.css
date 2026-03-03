@@ -232,6 +232,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  scrollbar-color: var(--operator) transparent;
+  scrollbar-width: thin;
+  overscroll-behavior-y: contain;
 }
 .history-empty {
   color: var(--text-muted);
