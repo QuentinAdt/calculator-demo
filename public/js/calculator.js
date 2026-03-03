@@ -337,12 +337,17 @@ clearHistoryBtn.addEventListener('click', () => {
   renderHistory();
 });
 
+// Pre-cache button elements for O(1) lookup — avoids querySelector on every keypress
+const buttonCache = new Map();
+document.querySelectorAll('.btn').forEach(btn => {
+  const action = btn.dataset.action;
+  const value = btn.dataset.value;
+  buttonCache.set(value != null ? action + ':' + value : action, btn);
+});
+
 // Visual feedback when a key maps to a calculator button
 function flashButton(action, value) {
-  const selector = value != null
-    ? `.btn[data-action="${action}"][data-value="${value}"]`
-    : `.btn[data-action="${action}"]`;
-  const btn = document.querySelector(selector);
+  const btn = buttonCache.get(value != null ? action + ':' + value : action);
   if (!btn) return;
   clearTimeout(btn._flashTimer);
   btn.classList.add('btn-flash');
