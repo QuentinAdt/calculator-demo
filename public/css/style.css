@@ -153,6 +153,8 @@ body {
   cursor: pointer;
   transition: background-color 0.15s, transform 0.15s;
   outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn:focus-visible {
   outline: 2px solid var(--accent);
@@ -232,7 +234,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
+.history-list::-webkit-scrollbar { width: 6px; }
+.history-list::-webkit-scrollbar-track { background: transparent; }
+.history-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.history-list::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 .history-empty {
   color: var(--text-muted);
   font-size: 0.9rem;
