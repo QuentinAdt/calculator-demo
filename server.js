@@ -35,25 +35,28 @@ app.use(compression());
 // Feedback widget origin — used in CSP to allow the lazy-loaded widget to function
 const WIDGET_ORIGIN = 'https://*.feedbackloopai.ovh';
 
-// Security headers to harden against common web attacks
+// Security headers — precomputed once at startup to avoid per-request
+// object allocation and CSP string concatenation
+const SECURITY_HEADERS = Object.freeze({
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    `script-src 'self' ${WIDGET_ORIGIN}`,
+    `style-src 'self' 'unsafe-inline' ${WIDGET_ORIGIN}`,
+    `connect-src 'self' ${WIDGET_ORIGIN}`,
+    `img-src 'self' data: ${WIDGET_ORIGIN}`,
+    `frame-src ${WIDGET_ORIGIN}`,
+    "font-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join('; '),
+});
+
 app.use((req, res, next) => {
-  res.set({
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Content-Security-Policy': [
-      "default-src 'self'",
-      `script-src 'self' ${WIDGET_ORIGIN}`,
-      `style-src 'self' 'unsafe-inline' ${WIDGET_ORIGIN}`,
-      `connect-src 'self' ${WIDGET_ORIGIN}`,
-      `img-src 'self' data: ${WIDGET_ORIGIN}`,
-      `frame-src ${WIDGET_ORIGIN}`,
-      "font-src 'self'",
-      "object-src 'none'",
-      "base-uri 'self'",
-    ].join('; '),
-  });
+  res.set(SECURITY_HEADERS);
   next();
 });
 
@@ -131,7 +134,8 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
 
 // Serve static files with tiered caching:
 // - HTML & JS: always revalidate (picks up auto-updater patches immediately)
-// - CSS/images/assets: cache 5 min, then revalidate via ETag/304
+// - CSS/images/assets: cache 5 min, serve stale up to 24h while revalidating in background
+//   (stale-while-revalidate eliminates render-blocking waits on repeat visits)
 app.use(express.static(join(__dirname, 'public'), {
   etag: true,
   lastModified: true,
@@ -139,7 +143,7 @@ app.use(express.static(join(__dirname, 'public'), {
     if (path.endsWith('.html') || path.endsWith('.js')) {
       res.set('Cache-Control', 'no-cache');
     } else {
-      res.set('Cache-Control', 'public, max-age=300');
+      res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');
     }
   }
 }));
