@@ -123,6 +123,8 @@ body {
   cursor: pointer;
   position: relative;
   transition: border-color 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .display:hover {
   border-color: var(--accent);
@@ -189,6 +191,8 @@ body {
   cursor: pointer;
   transition: background-color 0.15s, transform 0.15s;
   outline: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn:focus-visible {
   outline: 2px solid var(--accent);
