@@ -105,7 +105,12 @@ function saveHistory() {
 
 function updateDisplay() {
   display.textContent = currentInput;
-  expression.textContent = currentExpression;
+  // Show user-friendly math symbols in the expression line (matching history display)
+  // while keeping raw operators in currentExpression for safeEval()
+  expression.textContent = currentExpression
+    .replace(/\*/g, '×')
+    .replace(/\//g, '÷')
+    .replace(/-/g, '−');
 
   // Auto-scale result font size to fit long numbers
   const len = currentInput.length;
