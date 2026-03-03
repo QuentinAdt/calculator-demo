@@ -266,6 +266,13 @@ body {
   outline-offset: 2px;
 }
 
+.history-hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-bottom: 10px;
+  opacity: 0.6;
+}
+
 .history-list {
   flex: 1;
   overflow-y: auto;
@@ -288,6 +295,10 @@ body {
   transition: border-color 0.2s;
 }
 .history-item:hover { border-color: var(--accent); }
+.history-item.history-item-used {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 100px rgba(108, 92, 231, 0.08);
+}
 .history-item .expr {
   font-family: var(--font-mono);
   font-size: 0.85rem;
@@ -354,7 +365,8 @@ body {
   .display::after,
   .display-result,
   .history-clear,
-  .history-item {
+  .history-item,
+  .history-item.history-item-used {
     transition: none;
   }
   .btn:active,
