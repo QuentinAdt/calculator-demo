@@ -155,7 +155,27 @@ export async function handleWebhook(payload) {
   console.log(`[auto-updater] Done processing ${category}: ${title || 'untitled'}`);
 }
 
+// Per-category prompt config — keeps the template DRY while allowing each
+// category to customise the intro, section header, and action instruction.
+const PROMPT_CONFIG = {
+  BUG: {
+    intro: 'A user reported a bug in a calculator app',
+    section: 'Bug Report',
+    action: 'Fix the specific bug described in the report',
+    commentUpdate: 'Update the comment at the top of the file to reflect the fix (remove the bug from the INTENTIONAL BUGS list and add a CHANGELOG entry)',
+  },
+  FEATURE: {
+    intro: 'A user requested a feature for a calculator app',
+    section: 'Feature Request',
+    action: 'Implement the requested feature',
+    commentUpdate: 'Update the comment at the top (remove from MISSING FEATURES if applicable, add CHANGELOG entry)',
+  },
+};
+
 function buildPatchPrompt(category, request, currentCode) {
+  const config = PROMPT_CONFIG[category];
+  if (!config) return null; // QUESTION or unknown — no code change needed
+
   const analysisStr = request.aiAnalysis
     ? sanitizeField(JSON.stringify(request.aiAnalysis, null, 2), 1000)
     : 'No analysis available';
@@ -167,10 +187,9 @@ function buildPatchPrompt(category, request, currentCode) {
         .join('\n')
     : '';
 
-  if (category === 'BUG') {
-    return `You are a senior JavaScript developer. A user reported a bug in a calculator app.
+  return `You are a senior JavaScript developer. ${config.intro}.
 
-## Bug Report
+## ${config.section}
 Title: ${sanitizeField(request.title) || 'N/A'}
 Summary: ${sanitizeField(request.aiSummary) || 'N/A'}
 
@@ -186,43 +205,12 @@ ${currentCode}
 \`\`\`
 
 ## Instructions
-- Fix the specific bug described in the report
+- ${config.action}
 - Keep all existing functionality intact
 - Keep the code structure and style consistent
-- Update the comment at the top of the file to reflect the fix (remove the bug from the INTENTIONAL BUGS list and add a CHANGELOG entry)
+- ${config.commentUpdate}
 - Return ONLY the complete updated JavaScript file, no explanations
 - Do NOT add any markdown fencing or code blocks — return raw JavaScript only`;
-  }
-
-  if (category === 'FEATURE') {
-    return `You are a senior JavaScript developer. A user requested a feature for a calculator app.
-
-## Feature Request
-Title: ${sanitizeField(request.title) || 'N/A'}
-Summary: ${sanitizeField(request.aiSummary) || 'N/A'}
-
-## AI Analysis
-${analysisStr}
-
-## User Conversation
-${transcriptStr}
-
-## Current Code
-\`\`\`javascript
-${currentCode}
-\`\`\`
-
-## Instructions
-- Implement the requested feature
-- Keep all existing functionality intact
-- Keep the code structure and style consistent
-- Update the comment at the top (remove from MISSING FEATURES if applicable, add CHANGELOG entry)
-- Return ONLY the complete updated JavaScript file, no explanations
-- Do NOT add any markdown fencing or code blocks — return raw JavaScript only`;
-  }
-
-  // QUESTION — no code change needed
-  return null;
 }
 
 async function generatePatch(prompt, currentCode, apiKey) {
