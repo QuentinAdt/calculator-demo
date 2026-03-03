@@ -8,7 +8,6 @@
  *
  * MISSING FEATURES (for feature requests):
  * - No dark/light theme toggle (always dark)
- * - No percentage (%) button
  */
 
 const display = document.getElementById('result');
@@ -309,6 +308,15 @@ function handleBackspace() {
   updateDisplay();
 }
 
+function handlePercent() {
+  const num = parseFloat(currentInput);
+  if (isNaN(num)) return;
+  const result = parseFloat((num / 100).toPrecision(12));
+  currentInput = String(result);
+  lastResult = null;
+  updateDisplay();
+}
+
 // Button click handlers (event delegation — single listener for all buttons)
 document.querySelector('.buttons').addEventListener('click', (e) => {
   const btn = e.target.closest('.btn');
@@ -323,6 +331,7 @@ document.querySelector('.buttons').addEventListener('click', (e) => {
     case 'equals': handleEquals(); break;
     case 'clear': handleClear(); break;
     case 'backspace': handleBackspace(); break;
+    case 'percent': handlePercent(); break;
   }
 });
 
@@ -404,6 +413,10 @@ document.addEventListener('keydown', (e) => {
   } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
     flashButton('clear');
     handleClear();
+  } else if (e.key === '%') {
+    e.preventDefault();
+    flashButton('percent');
+    handlePercent();
   } else if (e.key === '(' || e.key === ')') {
     e.preventDefault();
     flashButton('operator', e.key);

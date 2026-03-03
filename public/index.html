@@ -38,30 +38,34 @@
           <div class="display-result" id="result" aria-live="polite">0</div>
         </div>
         <div class="buttons">
-          <button class="btn btn-clear" data-action="clear" aria-label="Clear">C</button>
-          <button class="btn btn-operator" data-action="backspace" aria-label="Backspace">⌫</button>
-          <button class="btn btn-operator" data-action="operator" data-value="(" aria-label="Open parenthesis">(</button>
-          <button class="btn btn-operator" data-action="operator" data-value=")" aria-label="Close parenthesis">)</button>
+          <div class="btn-row-utils">
+            <button class="btn btn-clear" data-action="clear" aria-label="Clear">C</button>
+            <button class="btn btn-operator" data-action="backspace" aria-label="Backspace">⌫</button>
+            <button class="btn btn-operator" data-action="percent" aria-label="Percent">%</button>
+            <button class="btn btn-operator" data-action="operator" data-value="(" aria-label="Open parenthesis">(</button>
+            <button class="btn btn-operator" data-action="operator" data-value=")" aria-label="Close parenthesis">)</button>
+          </div>
+          <div class="btn-row-main">
+            <button class="btn btn-number" data-action="number" data-value="7">7</button>
+            <button class="btn btn-number" data-action="number" data-value="8">8</button>
+            <button class="btn btn-number" data-action="number" data-value="9">9</button>
+            <button class="btn btn-operator btn-divide" data-action="operator" data-value="/" aria-label="Divide">÷</button>
 
-          <button class="btn btn-number" data-action="number" data-value="7">7</button>
-          <button class="btn btn-number" data-action="number" data-value="8">8</button>
-          <button class="btn btn-number" data-action="number" data-value="9">9</button>
-          <button class="btn btn-operator btn-divide" data-action="operator" data-value="/" aria-label="Divide">÷</button>
+            <button class="btn btn-number" data-action="number" data-value="4">4</button>
+            <button class="btn btn-number" data-action="number" data-value="5">5</button>
+            <button class="btn btn-number" data-action="number" data-value="6">6</button>
+            <button class="btn btn-operator btn-multiply" data-action="operator" data-value="*" aria-label="Multiply">×</button>
 
-          <button class="btn btn-number" data-action="number" data-value="4">4</button>
-          <button class="btn btn-number" data-action="number" data-value="5">5</button>
-          <button class="btn btn-number" data-action="number" data-value="6">6</button>
-          <button class="btn btn-operator btn-multiply" data-action="operator" data-value="*" aria-label="Multiply">×</button>
+            <button class="btn btn-number" data-action="number" data-value="1">1</button>
+            <button class="btn btn-number" data-action="number" data-value="2">2</button>
+            <button class="btn btn-number" data-action="number" data-value="3">3</button>
+            <button class="btn btn-operator btn-minus" data-action="operator" data-value="-" aria-label="Subtract">−</button>
 
-          <button class="btn btn-number" data-action="number" data-value="1">1</button>
-          <button class="btn btn-number" data-action="number" data-value="2">2</button>
-          <button class="btn btn-number" data-action="number" data-value="3">3</button>
-          <button class="btn btn-operator btn-minus" data-action="operator" data-value="-" aria-label="Subtract">−</button>
-
-          <button class="btn btn-number" data-action="number" data-value="0">0</button>
-          <button class="btn btn-number" data-action="decimal" data-value="." aria-label="Decimal point">.</button>
-          <button class="btn btn-equals" data-action="equals" aria-label="Equals">=</button>
-          <button class="btn btn-operator btn-plus" data-action="operator" data-value="+" aria-label="Add">+</button>
+            <button class="btn btn-number" data-action="number" data-value="0">0</button>
+            <button class="btn btn-number" data-action="decimal" data-value="." aria-label="Decimal point">.</button>
+            <button class="btn btn-equals" data-action="equals" aria-label="Equals">=</button>
+            <button class="btn btn-operator btn-plus" data-action="operator" data-value="+" aria-label="Add">+</button>
+          </div>
         </div>
       </div>
 

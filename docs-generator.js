@@ -50,7 +50,8 @@ export function generateDocs() {
     { symbol: '+', name: 'Addition', description: 'Adds two numbers' },
     { symbol: '−', name: 'Subtraction', description: 'Subtracts second number from first' },
     { symbol: '×', name: 'Multiplication', description: 'Multiplies two numbers' },
-    { symbol: '÷', name: 'Division', description: 'Divides first number by second' }
+    { symbol: '÷', name: 'Division', description: 'Divides first number by second' },
+    { symbol: '%', name: 'Percent', description: 'Converts number to percentage (divides by 100)' }
   ];
 
   // Features
@@ -61,7 +62,8 @@ export function generateDocs() {
     'Calculation history with click-to-reuse',
     'Backspace to delete last digit',
     'Clear (C) button to reset current calculation',
-    'Parentheses support for grouped expressions'
+    'Parentheses support for grouped expressions',
+    'Percentage (%) conversion'
   ];
 
   const html = `<!DOCTYPE html>
