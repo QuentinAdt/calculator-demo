@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import crypto from 'crypto';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -28,6 +29,34 @@ const ALLOWED_IPS = (process.env.ALLOWED_WEBHOOK_IPS || '116.202.8.41').split(',
 
 const app = express();
 
+// Compress all text-based responses (HTML, CSS, JS, JSON) to reduce transfer size
+app.use(compression());
+
+// Feedback widget origin — used in CSP to allow the lazy-loaded widget to function
+const WIDGET_ORIGIN = 'https://*.feedbackloopai.ovh';
+
+// Security headers to harden against common web attacks
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Content-Security-Policy': [
+      "default-src 'self'",
+      `script-src 'self' ${WIDGET_ORIGIN}`,
+      `style-src 'self' 'unsafe-inline' ${WIDGET_ORIGIN}`,
+      `connect-src 'self' ${WIDGET_ORIGIN}`,
+      `img-src 'self' data: ${WIDGET_ORIGIN}`,
+      `frame-src ${WIDGET_ORIGIN}`,
+      "font-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join('; '),
+  });
+  next();
+});
+
 // Parse JSON for webhook endpoint, keeping raw body for HMAC verification
 app.use('/api/webhook', express.json({
   limit: '1mb',
@@ -36,7 +65,7 @@ app.use('/api/webhook', express.json({
   }
 }));
 
-// Rate limiting for webhook (simple in-memory)
+// Rate limiting for webhook (simple in-memory with periodic cleanup)
 const webhookHits = new Map();
 function webhookRateLimit(req, res, next) {
   const ip = req.ip || req.connection.remoteAddress;
@@ -52,6 +81,19 @@ function webhookRateLimit(req, res, next) {
   webhookHits.set(ip, recent);
   next();
 }
+
+// Evict stale rate-limit entries to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, hits] of webhookHits) {
+    const recent = hits.filter(t => now - t < 60000);
+    if (recent.length === 0) {
+      webhookHits.delete(ip);
+    } else {
+      webhookHits.set(ip, recent);
+    }
+  }
+}, 300_000).unref();
 
 // Webhook endpoint
 app.post('/api/webhook', webhookRateLimit, (req, res) => {
@@ -70,7 +112,9 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
     const expected = crypto.createHmac('sha256', WEBHOOK_SECRET)
       .update(bodyToVerify)
       .digest('hex');
-    if (signature !== expected) {
+    const sigBuf = Buffer.from(signature, 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
       console.log('[webhook] Invalid signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }
@@ -85,17 +129,28 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
   });
 });
 
-// Serve static files (with no-cache for development)
+// Serve static files with tiered caching:
+// - HTML & JS: always revalidate (picks up auto-updater patches immediately)
+// - CSS/images/assets: cache 5 min, then revalidate via ETag/304
 app.use(express.static(join(__dirname, 'public'), {
-  etag: false,
-  lastModified: false,
-  setHeaders: (res) => {
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html') || path.endsWith('.js')) {
+      res.set('Cache-Control', 'no-cache');
+    } else {
+      res.set('Cache-Control', 'public, max-age=300');
+    }
   }
 }));
 
-// SPA fallback
+// SPA fallback — serve index.html for clean URL navigation, 404 for missing files
 app.get('*', (req, res) => {
+  // Requests with file extensions (e.g. /favicon.ico, /missing.js) are genuinely missing
+  // from public/ — return 404 instead of wastefully serving the full HTML page
+  if (/\.\w+$/.test(req.path)) {
+    return res.status(404).end();
+  }
   res.sendFile(join(__dirname, 'public', 'index.html'));
 });
 

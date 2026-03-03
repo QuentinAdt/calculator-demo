@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import vm from 'vm';
 import { generateDocs } from './docs-generator.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -177,6 +178,14 @@ async function generatePatch(prompt, currentCode, apiKey) {
     // Must be at least 50% the size of original (prevent truncation)
     if (code.length < currentCode.length * 0.5) {
       console.error('[auto-updater] Generated code too short, rejecting patch');
+      return null;
+    }
+
+    // Verify the generated code is syntactically valid JavaScript
+    try {
+      new vm.Script(code);
+    } catch (syntaxErr) {
+      console.error('[auto-updater] Generated code has syntax errors, rejecting patch:', syntaxErr.message);
       return null;
     }
 

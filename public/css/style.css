@@ -1,6 +1,7 @@
 :root {
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  color-scheme: dark;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
   --bg: #0a0a0f;
   --bg-card: #12121a;
   --bg-display: #0d0d14;
@@ -133,6 +134,7 @@ body {
   font-weight: 500;
   color: var(--text);
   word-break: break-all;
+  transition: font-size 0.15s ease;
 }
 
 .buttons {
@@ -149,8 +151,12 @@ body {
   border-radius: var(--radius-sm);
   padding: 16px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s, transform 0.15s;
   outline: none;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .btn:active { transform: scale(0.95); }
 
@@ -209,11 +215,15 @@ body {
   padding: 4px 12px;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, color 0.2s;
 }
 .history-clear:hover {
   border-color: var(--clear);
   color: var(--clear);
+}
+.history-clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .history-list {
@@ -288,17 +298,50 @@ body {
 }
 .footer a:hover { text-decoration: underline; }
 
+/* Keyboard flash — brief highlight when a calculator key is pressed.
+   Uses inset box-shadow instead of filter:brightness() to avoid expensive
+   offscreen-buffer rasterization on every keypress. */
+.btn.btn-flash {
+  box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.12);
+  transform: scale(0.95);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .nav-link,
+  .btn,
+  .display-result,
+  .history-clear,
+  .history-item {
+    transition: none;
+  }
+  .btn:active,
+  .btn.btn-flash {
+    transform: none;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+  .main { padding-top: 16px; padding-bottom: 16px; }
+  .hero { margin-bottom: 16px; }
   .calculator-container {
     grid-template-columns: 1fr;
     max-width: 360px;
     margin-left: auto;
     margin-right: auto;
+    margin-bottom: 24px;
   }
   .info-cards {
     grid-template-columns: 1fr;
   }
   .hero h1 { font-size: 1.6rem; }
-  .nav { display: none; }
+  .header-inner {
+    flex-direction: column;
+    height: auto;
+    padding: 12px 0;
+    gap: 6px;
+  }
+  .nav { gap: 16px; }
+  .nav-link { font-size: 0.8rem; }
 }
