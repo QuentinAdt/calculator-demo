@@ -21,7 +21,12 @@ try {
     const value = trimmed.slice(eqIdx + 1).trim();
     if (!process.env[key]) process.env[key] = value;
   }
-} catch {}
+} catch (err) {
+  // Missing .env is expected (env vars may come from the host); only warn on real failures
+  if (err.code !== 'ENOENT') {
+    console.warn('[server] Could not read .env file:', err.message);
+  }
+}
 
 const PORT = parseInt(process.env.PORT, 10) || 3080;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
@@ -155,7 +160,7 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
 
   // Process asynchronously
   handleWebhook(req.body).catch(err => {
-    console.error('[webhook] Processing error:', err.message);
+    console.error('[webhook] Processing error:', err instanceof Error ? err.stack : err);
   });
 });
 
@@ -181,7 +186,10 @@ let cachedMtimes = {};
 function getFileMtime(filePath) {
   try {
     return statSync(filePath).mtimeMs;
-  } catch {
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      console.warn(`[server] Unexpected error stating ${filePath}:`, err.message);
+    }
     return 0;
   }
 }
@@ -257,7 +265,8 @@ function getMinifiedJs(filename) {
     const entry = { content, gzipped, hash, time: now, mtime };
     cachedMinifiedJs[filename] = entry;
     return entry;
-  } catch {
+  } catch (err) {
+    console.warn(`[server] Failed to read/minify ${filename}:`, err.message);
     return null;
   }
 }
@@ -292,8 +301,9 @@ function getInlinedHtml() {
         '<link rel="stylesheet" href="/css/style.css">',
         `<style>${minifyCss(css)}</style>`
       );
-    } catch {
+    } catch (err) {
       // CSS read failed — serve raw HTML (browser will fetch stylesheet separately)
+      console.warn('[server] CSS inlining failed, falling back to external stylesheet:', err.message);
       cachedInlinedHtml = html;
     }
   } catch (err) {
@@ -385,21 +395,21 @@ app.get('*', (req, res) => {
 // Prevents stack trace leakage to clients and returns a clean error response.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
-  console.error('[server] Unhandled error:', err.message);
+  console.error('[server] Unhandled error:', err instanceof Error ? err.stack : err);
   res.status(500).type('text').send('Internal server error');
 });
 
 // Catch unhandled promise rejections to prevent silent process crashes
 // (e.g. from async webhook processing or other background tasks)
 process.on('unhandledRejection', (reason) => {
-  console.error('[server] Unhandled promise rejection:', reason instanceof Error ? reason.message : reason);
+  console.error('[server] Unhandled promise rejection:', reason instanceof Error ? reason.stack : reason);
 });
 
 // Catch uncaught synchronous exceptions that occur outside Express route handlers
 // (e.g. in setInterval callbacks, event emitters). Log before exiting so the error
 // is visible in monitoring rather than silently crashing.
 process.on('uncaughtException', (err) => {
-  console.error('[server] Uncaught exception — shutting down:', err.message);
+  console.error('[server] Uncaught exception — shutting down:', err instanceof Error ? err.stack : err);
   process.exit(1);
 });
 
