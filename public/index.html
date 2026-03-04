@@ -56,7 +56,8 @@
     </div>
 
     <div class="calculator-container">
-      <div class="calculator" role="group" aria-label="Calculator">
+      <p id="calcInstructions" class="sr-only">Use number keys 0 through 9 to enter digits. Use plus, minus, asterisk, and slash for operators. Press Enter or equals to calculate. Press Backspace to delete the last character. Press C or Escape to clear. Click or activate the display to copy the result. Click a history item to reuse its value.</p>
+      <div class="calculator" role="group" aria-label="Calculator" aria-describedby="calcInstructions">
         <div class="display" tabindex="0" role="button" aria-label="Result: 0. Activate to copy to clipboard">
           <div class="display-expression" id="expression" aria-hidden="true"></div>
           <div class="display-result" id="result">0</div>
@@ -98,8 +99,8 @@
           <h3>History</h3>
           <button class="history-clear" id="clearHistory" aria-label="Clear history">Clear</button>
         </div>
-        <p class="history-hint">Click a result to reuse it</p>
-        <div class="history-list" id="historyList" role="log" aria-label="Past calculations">
+        <p class="history-hint" id="historyHint">Click a result to reuse it</p>
+        <div class="history-list" id="historyList" role="log" aria-label="Past calculations" aria-describedby="historyHint">
           <p class="history-empty">No calculations yet</p>
         </div>
       </div>
