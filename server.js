@@ -31,8 +31,7 @@ try {
 const PORT = parseInt(process.env.PORT, 10) || 3080;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 if (!WEBHOOK_SECRET) {
-  console.error('[server] WEBHOOK_SECRET environment variable is required — refusing to start without it');
-  process.exit(1);
+  console.warn('[server] WEBHOOK_SECRET not set — webhook endpoint will reject all requests');
 }
 const ALLOWED_IPS = (process.env.ALLOWED_WEBHOOK_IPS || '116.202.8.41').split(',').map(s => s.trim());
 
