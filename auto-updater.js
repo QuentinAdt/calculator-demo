@@ -13,6 +13,27 @@ function getEnv(key) { return process.env[key] || ''; }
 const CALCULATOR_JS_PATH = join(__dirname, 'public', 'js', 'calculator.js');
 const CALCULATOR_JS_BACKUP = join(__dirname, 'public', 'js', 'calculator.js.bak');
 
+// Allowed hostname suffix for the feedback API — prevents SSRF by ensuring the
+// admin bearer token is only ever sent to the expected first-party service.
+const ALLOWED_FEEDBACK_DOMAIN = '.feedbackloopai.ovh';
+
+/**
+ * Validate that a feedback API URL is safe to send credentials to.
+ * Rejects non-HTTPS URLs and hostnames outside the allowed domain to prevent
+ * admin token leakage via environment variable tampering or misconfiguration.
+ */
+function isAllowedFeedbackUrl(urlString) {
+  try {
+    const parsed = new URL(urlString);
+    if (parsed.protocol !== 'https:') return false;
+    const hostname = parsed.hostname.toLowerCase();
+    // Accept exact match or any subdomain of the allowed domain
+    return hostname === ALLOWED_FEEDBACK_DOMAIN.slice(1) || hostname.endsWith(ALLOWED_FEEDBACK_DOMAIN);
+  } catch {
+    return false;
+  }
+}
+
 // Max lengths for user-controlled webhook fields interpolated into AI prompts.
 // Truncation limits prompt injection surface and prevents excessively large payloads.
 const MAX_FIELD_LENGTH = 500;
@@ -159,7 +180,11 @@ export async function handleWebhook(payload) {
   const feedbackUrl = getEnv('FEEDBACKLOOP_API_URL');
   const adminToken = getEnv('FEEDBACKLOOP_ADMIN_TOKEN');
   if (feedbackUrl && adminToken) {
-    await updateFeedbackStatus(request.id, 'TEST_READY', feedbackUrl, adminToken);
+    if (!isAllowedFeedbackUrl(feedbackUrl)) {
+      console.error(`[auto-updater] Refusing status update — FEEDBACKLOOP_API_URL is not an allowed HTTPS endpoint`);
+    } else {
+      await updateFeedbackStatus(request.id, 'TEST_READY', feedbackUrl, adminToken);
+    }
   }
 
   console.log(`[auto-updater] Done processing ${category}: ${title || 'untitled'}`);
