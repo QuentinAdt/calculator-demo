@@ -177,7 +177,7 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
 const HTML_PATH = join(__dirname, 'public', 'index.html');
 const CSS_PATH = join(__dirname, 'public', 'css', 'style.css');
 const JS_DIR = join(__dirname, 'public', 'js');
-const JS_FILES = ['calculator.js', 'feedback-loader.js'];
+const JS_FILES = ['calculator.js'];
 // Grouped HTML cache — all fields are computed together and invalidated atomically.
 // { html, gzip, brotli, etag, preloadHeader, checkedAt }
 let htmlCache = null;
