@@ -307,7 +307,15 @@ async function generatePatch(prompt, currentCode, apiKey) {
     });
 
     if (!response.ok) {
-      console.error(`[auto-updater] AI API error: ${response.status}`);
+      let body = '';
+      try { body = (await response.text()).slice(0, 500); } catch (_) { /* unreadable body */ }
+      if (response.status === 429) {
+        console.error(`[auto-updater] AI API rate limited (429). Retry-After: ${response.headers.get('retry-after') || 'unknown'}. Body: ${body}`);
+      } else if (response.status === 401 || response.status === 403) {
+        console.error(`[auto-updater] AI API auth error (${response.status}): ${body}`);
+      } else {
+        console.error(`[auto-updater] AI API error (${response.status} ${response.statusText}): ${body}`);
+      }
       return null;
     }
 
@@ -338,7 +346,13 @@ async function generatePatch(prompt, currentCode, apiKey) {
 
     return code;
   } catch (err) {
-    console.error(`[auto-updater] AI generation failed: ${err.message}`);
+    if (err.name === 'AbortError' || err.name === 'TimeoutError') {
+      console.error('[auto-updater] AI API request timed out after 30s');
+    } else if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET') {
+      console.error(`[auto-updater] AI API network error (${err.code}): ${err.message}`);
+    } else {
+      console.error(`[auto-updater] AI generation failed: ${err.message}`);
+    }
     return null;
   }
 }
