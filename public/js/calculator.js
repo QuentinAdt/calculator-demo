@@ -594,7 +594,13 @@ document.addEventListener('keydown', (e) => {
   if (!binding) return;
   if (!binding.noPrevent) e.preventDefault();
   flashButton(binding.action, binding.value);
-  binding.handler(binding.value);
+  try {
+    binding.handler(binding.value);
+  } catch (err) {
+    console.warn('[calculator] Keyboard handler error:', err.message);
+    setErrorState('Error');
+    updateDisplay();
+  }
 });
 
 // Copy result to clipboard when display is clicked/tapped or activated via keyboard
