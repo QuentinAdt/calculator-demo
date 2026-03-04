@@ -278,25 +278,24 @@ function addToHistory(expr, result) {
 }
 
 function createHistoryItem(item) {
-  const div = document.createElement('div');
-  div.className = 'history-item';
-  div.dataset.result = item.result;
-  div.dataset.expression = item.expression;
-  div.setAttribute('role', 'button');
-  div.setAttribute('tabindex', '0');
-  div.setAttribute('aria-label', formatExprNumbers(item.expression) + ' equals ' + formatNumber(item.result) + '. Activate to reuse.');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'history-item';
+  btn.dataset.result = item.result;
+  btn.dataset.expression = item.expression;
+  btn.setAttribute('aria-label', formatExprNumbers(item.expression) + ' equals ' + formatNumber(item.result) + '. Activate to reuse.');
 
-  const expr = document.createElement('div');
+  const expr = document.createElement('span');
   expr.className = 'expr';
   expr.textContent = formatExprNumbers(item.expression);
 
-  const res = document.createElement('div');
+  const res = document.createElement('span');
   res.className = 'res';
   res.textContent = '= ' + formatNumber(item.result);
 
-  div.appendChild(expr);
-  div.appendChild(res);
-  return div;
+  btn.appendChild(expr);
+  btn.appendChild(res);
+  return btn;
 }
 
 function renderHistory() {
@@ -556,16 +555,6 @@ historyList.addEventListener('click', (e) => {
   item._flashTimer = setTimeout(() => item.classList.remove('history-item-used'), 400);
   announce('Reused result ' + formatNumber(result));
   updateDisplay();
-});
-
-// Keyboard activation for history items (Enter / Space trigger click)
-historyList.addEventListener('keydown', (e) => {
-  const item = e.target.closest('.history-item');
-  if (!item) return;
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    item.click();
-  }
 });
 
 // Clear history button
