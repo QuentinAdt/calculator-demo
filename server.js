@@ -420,10 +420,24 @@ app.get('*', (req, res) => {
 
 // Global error handler — catches unhandled exceptions in route handlers.
 // Prevents stack trace leakage to clients and returns a clean error response.
+// Uses err.status/err.statusCode from Express middleware (e.g. body-parser
+// JSON parse failures → 400, payload too large → 413) instead of blanket 500.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
-  console.error('[server] Unhandled error:', err instanceof Error ? err.stack : err);
-  res.status(500).type('text').send('Internal server error');
+  const status = typeof err.status === 'number' ? err.status
+    : typeof err.statusCode === 'number' ? err.statusCode
+    : 500;
+
+  if (status >= 500) {
+    console.error('[server] Unhandled error:', err instanceof Error ? err.stack : err);
+    res.status(status).type('text').send('Internal server error');
+  } else {
+    // Client errors (4xx) from middleware (e.g. malformed JSON, oversized payload)
+    // — log at warn level and expose the message only when marked safe by the middleware
+    console.warn(`[server] Client error (${status} ${req.method} ${req.path}):`, err.message || err);
+    const message = err.expose && err.message ? err.message : 'Bad request';
+    res.status(status).type('text').send(message);
+  }
 });
 
 // Catch unhandled promise rejections to prevent silent process crashes
