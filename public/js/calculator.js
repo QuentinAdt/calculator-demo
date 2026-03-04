@@ -24,6 +24,22 @@ function announce(message) {
   requestAnimationFrame(() => { a11yStatus.textContent = message; });
 }
 
+// Announce an error assertively via role="alert" so it interrupts the current speech
+const a11yAlert = document.getElementById('a11yAlert');
+function announceError(message) {
+  if (!a11yAlert) return;
+  a11yAlert.textContent = '';
+  requestAnimationFrame(() => { a11yAlert.textContent = message; });
+}
+
+// Build a screen-reader-friendly version of a math expression
+// e.g. "5 * 3" → "5 times 3", "10 / 2" → "10 divided by 2"
+function spokenExpression(expr) {
+  return expr.replace(/[+\-*/]/g, function(op) {
+    return ' ' + (spokenOperators[op] || op) + ' ';
+  }).replace(/\s+/g, ' ').trim();
+}
+
 /**
  * Safe math expression evaluator — replaces eval() to prevent arbitrary code execution.
  * Supports: numbers, +, -, *, /, parentheses, and unary minus.
@@ -212,7 +228,21 @@ function updateDisplay() {
   // Keep the display button's aria-label in sync so screen reader users can
   // discover the current result by navigating to the display element.
   // (The #a11yStatus live region handles real-time announcements separately.)
-  if (displayContainer) displayContainer.setAttribute('aria-label', 'Result: ' + formattedInput + '. Activate to copy to clipboard');
+  if (displayContainer) {
+    var ariaLabel;
+    if (currentInput === 'Error' || currentInput === 'Cannot divide by zero') {
+      ariaLabel = 'Error: ' + currentInput;
+    } else if (lastExprDisplay) {
+      // After equals: full expression context, e.g. "5 times 3 equals 15"
+      ariaLabel = spokenExpression(lastExprDisplay.replace(' = ', ' equals ')) + '. Activate to copy to clipboard';
+    } else if (currentExpression && currentInput) {
+      // Mid-expression: show partial context, e.g. "Expression: 5 plus 3"
+      ariaLabel = 'Expression: ' + spokenExpression(currentExpression + currentInput) + '. Activate to copy to clipboard';
+    } else {
+      ariaLabel = 'Result: ' + formattedInput + '. Activate to copy to clipboard';
+    }
+    displayContainer.setAttribute('aria-label', ariaLabel);
+  }
 
   // Auto-scale result font size to fit long numbers (use formatted length for accurate sizing)
   const len = formattedInput.length;
@@ -396,7 +426,7 @@ function handleEquals() {
     if (!isFinite(result)) {
       const msg = result !== result ? 'Error' : 'Cannot divide by zero';
       setErrorState(msg);
-      announce(msg);
+      announceError(msg);
       updateDisplay();
       return;
     }
@@ -409,10 +439,10 @@ function handleEquals() {
     lastResult = result;
     addToHistory(displayExpr, displayResult);
     lastExprDisplay = fullExpr + ' = ' + displayResult;
-    announce('Result: ' + formatNumber(displayResult));
+    announce(spokenExpression(fullExpr) + ' equals ' + formatNumber(displayResult));
   } catch (e) {
     setErrorState('Error');
-    announce('Error');
+    announceError('Error: invalid expression');
   }
   updateDisplay();
 }
@@ -493,6 +523,7 @@ if (buttonsContainer) buttonsContainer.addEventListener('click', (e) => {
   } catch (err) {
     console.warn('[calculator] Button handler error:', err.message);
     setErrorState('Error');
+    announceError('Error');
     updateDisplay();
   }
 });
@@ -599,6 +630,7 @@ document.addEventListener('keydown', (e) => {
   } catch (err) {
     console.warn('[calculator] Keyboard handler error:', err.message);
     setErrorState('Error');
+    announceError('Error');
     updateDisplay();
   }
 });
