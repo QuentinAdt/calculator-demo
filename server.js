@@ -1,5 +1,4 @@
 import express from 'express';
-import compression from 'compression';
 import crypto from 'crypto';
 import { gzipSync } from 'zlib';
 import { readFileSync, statSync } from 'fs';
@@ -33,9 +32,6 @@ if (!WEBHOOK_SECRET) {
 const ALLOWED_IPS = (process.env.ALLOWED_WEBHOOK_IPS || '116.202.8.41').split(',').map(s => s.trim());
 
 const app = express();
-
-// Compress all text-based responses (HTML, CSS, JS, JSON) to reduce transfer size
-app.use(compression());
 
 // Feedback widget origin — used in CSP to allow the lazy-loaded widget to function
 const WIDGET_ORIGIN = 'https://*.feedbackloopai.ovh';
