@@ -111,6 +111,13 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
+  // Reject requests where the JSON body parser was skipped (e.g., missing or
+  // non-JSON Content-Type).  Without this guard, the HMAC verification below
+  // would call crypto.createHmac().update(undefined) and throw a TypeError.
+  if (req.body === undefined) {
+    return res.status(400).json({ error: 'Request body must be JSON' });
+  }
+
   // Verify HMAC signature using raw body — always enforced (WEBHOOK_SECRET is required at startup)
   const signature = req.headers['x-webhook-signature'];
   if (!signature) {
