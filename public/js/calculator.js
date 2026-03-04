@@ -176,12 +176,44 @@ let prevDisplayText = null;
 let prevExprText = null;
 let prevFontSize = null;
 
+// Allowed characters in calculator expressions/results: digits, operators,
+// decimal points, parentheses, whitespace, minus sign, 'e' for scientific
+// notation, and common display tokens (Infinity, NaN, Error messages).
+// Anything outside this set is stripped to prevent injected content from
+// reaching DOM attributes (dataset, aria-label) or confusing display logic.
+const SAFE_CALC_RE = /[^0-9a-zA-Z .+\-*/()=,:!]/g;
+const MAX_FIELD_LENGTH = 100;
+
+function isValidHistoryItem(item) {
+  return (
+    item !== null &&
+    typeof item === 'object' &&
+    typeof item.expression === 'string' &&
+    typeof item.result === 'string' &&
+    item.expression.length > 0 &&
+    item.expression.length <= MAX_FIELD_LENGTH &&
+    item.result.length > 0 &&
+    item.result.length <= MAX_FIELD_LENGTH
+  );
+}
+
+function sanitizeHistoryField(value) {
+  return value.replace(SAFE_CALC_RE, '').slice(0, MAX_FIELD_LENGTH);
+}
+
 function loadHistory() {
   try {
     const saved = localStorage.getItem('calcHistory');
     if (!saved) return [];
     const parsed = JSON.parse(saved);
-    return parsed.slice(0, MAX_HISTORY);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(isValidHistoryItem)
+      .slice(0, MAX_HISTORY)
+      .map(item => ({
+        expression: sanitizeHistoryField(item.expression),
+        result: sanitizeHistoryField(item.result),
+      }));
   } catch (e) {
     return [];
   }
