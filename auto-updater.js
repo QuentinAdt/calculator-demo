@@ -11,7 +11,7 @@ const __dirname = dirname(__filename);
 function getEnv(key) { return process.env[key] || ''; }
 
 const CALCULATOR_JS_PATH = join(__dirname, 'public', 'js', 'calculator.js');
-const CALCULATOR_JS_BACKUP = join(__dirname, 'public', 'js', 'calculator.js.bak');
+const CALCULATOR_JS_BACKUP = join(__dirname, 'calculator.js.bak');
 
 // Allowed hostname suffix for the feedback API — prevents SSRF by ensuring the
 // admin bearer token is only ever sent to the expected first-party service.
