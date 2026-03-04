@@ -44,27 +44,32 @@ app.disable('x-powered-by');
 // Feedback widget origin — used in CSP to allow the lazy-loaded widget to function
 const WIDGET_ORIGIN = 'https://*.feedbackloopai.ovh';
 
+// Precompute security headers once at startup — avoids per-request object
+// allocation and CSP string concatenation (10-element array join) on every
+// incoming request, reducing GC pressure and shaving ~µs off each response.
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    `script-src 'self' ${WIDGET_ORIGIN}`,
+    `style-src 'self' 'unsafe-inline' ${WIDGET_ORIGIN}`,
+    `connect-src 'self' ${WIDGET_ORIGIN}`,
+    `img-src 'self' data: ${WIDGET_ORIGIN}`,
+    `frame-src ${WIDGET_ORIGIN}`,
+    "font-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; '),
+};
+
 // Security headers to harden against common web attacks
 app.use((req, res, next) => {
-  res.set({
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Cross-Origin-Opener-Policy': 'same-origin',
-    'Content-Security-Policy': [
-      "default-src 'self'",
-      `script-src 'self' ${WIDGET_ORIGIN}`,
-      `style-src 'self' 'unsafe-inline' ${WIDGET_ORIGIN}`,
-      `connect-src 'self' ${WIDGET_ORIGIN}`,
-      `img-src 'self' data: ${WIDGET_ORIGIN}`,
-      `frame-src ${WIDGET_ORIGIN}`,
-      "font-src 'self'",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-    ].join('; '),
-  });
+  res.set(SECURITY_HEADERS);
   next();
 });
 
