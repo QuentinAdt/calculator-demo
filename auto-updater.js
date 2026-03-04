@@ -48,6 +48,40 @@ function sanitizeField(value, maxLength = MAX_FIELD_LENGTH) {
   return value.slice(0, maxLength).replace(/[^\x20-\x7E\n\r\t]/g, '');
 }
 
+// Key functions that any valid calculator patch must preserve.
+const REQUIRED_FUNCTIONS = ['handleEquals', 'handleClear', 'updateDisplay'];
+
+/**
+ * Validate that AI-generated code is safe and structurally sound before applying.
+ * Returns null if the code passes all checks, or a string describing the rejection reason.
+ */
+function validatePatch(code, currentCode) {
+  const missingFns = REQUIRED_FUNCTIONS.filter(fn => !code.includes(fn));
+  if (missingFns.length > 0) {
+    return `missing key functions: ${missingFns.join(', ')}`;
+  }
+
+  // Must be at least 50% the size of original (prevent truncation)
+  if (code.length < currentCode.length * 0.5) {
+    return 'generated code too short';
+  }
+
+  // Verify syntactically valid JavaScript
+  try {
+    new vm.Script(code);
+  } catch (syntaxErr) {
+    return `syntax errors: ${syntaxErr.message}`;
+  }
+
+  // Reject dangerous patterns that could result from prompt injection
+  const violations = detectDangerousPatterns(code);
+  if (violations.length > 0) {
+    return `dangerous patterns: ${violations.join(', ')}`;
+  }
+
+  return null;
+}
+
 /**
  * Scan AI-generated code for dangerous patterns that a calculator app should never contain.
  * Guards against prompt injection attacks that trick the AI into generating malicious code
@@ -295,30 +329,10 @@ async function generatePatch(prompt, currentCode, apiKey) {
     // Strip markdown fencing if AI added it despite instructions
     code = code.replace(/^```(?:javascript|js)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
 
-    // Sanity check: must contain key functions
-    if (!code.includes('handleEquals') || !code.includes('handleClear') || !code.includes('updateDisplay')) {
-      console.error('[auto-updater] Generated code missing key functions, rejecting patch');
-      return null;
-    }
-
-    // Must be at least 50% the size of original (prevent truncation)
-    if (code.length < currentCode.length * 0.5) {
-      console.error('[auto-updater] Generated code too short, rejecting patch');
-      return null;
-    }
-
-    // Verify the generated code is syntactically valid JavaScript
-    try {
-      new vm.Script(code);
-    } catch (syntaxErr) {
-      console.error('[auto-updater] Generated code has syntax errors, rejecting patch:', syntaxErr.message);
-      return null;
-    }
-
-    // Reject code containing dangerous patterns that could result from prompt injection
-    const violations = detectDangerousPatterns(code);
-    if (violations.length > 0) {
-      console.error(`[auto-updater] Generated code contains dangerous patterns, rejecting patch: ${violations.join(', ')}`);
+    // Validate the generated code is structurally sound, syntactically valid, and safe
+    const rejection = validatePatch(code, currentCode);
+    if (rejection) {
+      console.error(`[auto-updater] Rejecting patch: ${rejection}`);
       return null;
     }
 
