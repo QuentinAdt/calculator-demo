@@ -24,7 +24,11 @@ try {
 } catch {}
 
 const PORT = parseInt(process.env.PORT, 10) || 3080;
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+if (!WEBHOOK_SECRET) {
+  console.error('[server] WEBHOOK_SECRET environment variable is required — refusing to start without it');
+  process.exit(1);
+}
 const ALLOWED_IPS = (process.env.ALLOWED_WEBHOOK_IPS || '116.202.8.41').split(',').map(s => s.trim());
 
 const app = express();
@@ -106,23 +110,21 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  // Verify HMAC signature using raw body — require signature when secret is configured
-  if (WEBHOOK_SECRET) {
-    const signature = req.headers['x-webhook-signature'];
-    if (!signature) {
-      console.log('[webhook] Missing signature');
-      return res.status(401).json({ error: 'Missing signature' });
-    }
-    const bodyToVerify = req.rawBody || JSON.stringify(req.body);
-    const expected = crypto.createHmac('sha256', WEBHOOK_SECRET)
-      .update(bodyToVerify)
-      .digest('hex');
-    const sigBuf = Buffer.from(signature, 'hex');
-    const expBuf = Buffer.from(expected, 'hex');
-    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-      console.log('[webhook] Invalid signature');
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
+  // Verify HMAC signature using raw body — always enforced (WEBHOOK_SECRET is required at startup)
+  const signature = req.headers['x-webhook-signature'];
+  if (!signature) {
+    console.log('[webhook] Missing signature');
+    return res.status(401).json({ error: 'Missing signature' });
+  }
+  const bodyToVerify = req.rawBody || JSON.stringify(req.body);
+  const expected = crypto.createHmac('sha256', WEBHOOK_SECRET)
+    .update(bodyToVerify)
+    .digest('hex');
+  const sigBuf = Buffer.from(signature, 'hex');
+  const expBuf = Buffer.from(expected, 'hex');
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    console.log('[webhook] Invalid signature');
+    return res.status(401).json({ error: 'Invalid signature' });
   }
 
   // Validate payload structure before processing
