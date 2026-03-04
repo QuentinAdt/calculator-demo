@@ -12,7 +12,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Calculator Demo">
   <title>Calculator — FeedbackLoop AI Demo</title>
-  <link rel="preconnect" href="https://test1.116.202.8.41.feedbackloopai.ovh">
+  <link rel="dns-prefetch" href="https://test1.116.202.8.41.feedbackloopai.ovh">
   <link rel="stylesheet" href="/css/style.css">
   <script type="application/ld+json">
   {
@@ -32,7 +32,11 @@
   }
   </script>
   <script src="/js/calculator.js" defer></script>
-  <script src="/js/feedback-loader.js" defer></script>
+  <script>
+  // Defer feedback widget to browser idle time so it never competes with
+  // calculator interactivity.  dns-prefetch in <head> keeps DNS warm.
+  (function(){function l(){var s=document.createElement('script');s.src='https://test1.116.202.8.41.feedbackloopai.ovh/unified/feedbackloop.js';s.dataset.apiKey='fl_61224563e54b34ec31061086516635bd';document.head.appendChild(s)}if('requestIdleCallback'in window){requestIdleCallback(l)}else{addEventListener('load',function(){setTimeout(l,0)})}})();
+  </script>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to calculator</a>
