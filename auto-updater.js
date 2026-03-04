@@ -139,6 +139,32 @@ function detectDangerousPatterns(code) {
 
     // Function constructor — ''.constructor.constructor('code') or [].constructor.constructor(...)
     [/\.constructor\s*\(\s*['"`]/, 'Function constructor with string argument'],
+
+    // globalThis — bypasses word-boundary checks: globalThis.fetch(), globalThis['eval']
+    [/\bglobalThis\b/, 'globalThis access (scope escape)'],
+
+    // Reflect API — can invoke any function indirectly:
+    // Reflect.apply(eval, null, ['code']), Reflect.construct(Function, ['code'])
+    [/\bReflect\s*\./, 'Reflect API (indirect invocation)'],
+
+    // Proxy — can intercept and redefine fundamental operations to hide behavior
+    [/\bnew\s+Proxy\s*\(/, 'Proxy creation (operation interception)'],
+
+    // Prototype pollution — modifying prototypes can alter global behavior
+    [/\b__proto__\b/, 'prototype chain manipulation (__proto__)'],
+    [/\bObject\s*\.\s*setPrototypeOf\b/, 'prototype chain manipulation (setPrototypeOf)'],
+
+    // String construction bypasses — build dangerous strings character-by-character
+    // to evade pattern matching: String.fromCharCode(102,101,116,99,104) === 'fetch'
+    [/\bString\s*\.\s*fromCharCode\b/, 'string construction bypass (fromCharCode)'],
+    [/\bString\s*\.\s*fromCodePoint\b/, 'string construction bypass (fromCodePoint)'],
+
+    // Base64 decoding — can decode obfuscated payloads: atob('ZmV0Y2g=') === 'fetch'
+    [/\batob\s*\(/, 'base64 decoding (payload obfuscation)'],
+
+    // Blob/ObjectURL — can create executable content from arbitrary strings
+    [/\bnew\s+Blob\s*\(/, 'Blob creation (executable content)'],
+    [/\bURL\s*\.\s*createObjectURL\b/, 'object URL creation (executable content)'],
   ];
 
   for (const [regex, label] of patterns) {
