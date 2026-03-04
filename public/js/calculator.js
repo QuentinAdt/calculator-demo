@@ -212,7 +212,7 @@ function updateDisplay() {
   // Keep the display button's aria-label in sync so screen reader users can
   // discover the current result by navigating to the display element.
   // (The #a11yStatus live region handles real-time announcements separately.)
-  displayContainer.setAttribute('aria-label', 'Result: ' + formattedInput + '. Activate to copy to clipboard');
+  if (displayContainer) displayContainer.setAttribute('aria-label', 'Result: ' + formattedInput + '. Activate to copy to clipboard');
 
   // Auto-scale result font size to fit long numbers (use formatted length for accurate sizing)
   const len = formattedInput.length;
@@ -473,20 +473,27 @@ function handlePercent() {
 }
 
 // Button click handlers (event delegation — single listener for all buttons)
-document.querySelector('.buttons').addEventListener('click', (e) => {
+var buttonsContainer = document.querySelector('.buttons');
+if (buttonsContainer) buttonsContainer.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn');
   if (!btn) return;
   const action = btn.dataset.action;
   const value = btn.dataset.value;
 
-  switch (action) {
-    case 'number': handleNumber(value); break;
-    case 'decimal': handleDecimal(); break;
-    case 'operator': handleOperator(value); break;
-    case 'equals': handleEquals(); break;
-    case 'clear': handleClear(); break;
-    case 'backspace': handleBackspace(); break;
-    case 'percent': handlePercent(); break;
+  try {
+    switch (action) {
+      case 'number': handleNumber(value); break;
+      case 'decimal': handleDecimal(); break;
+      case 'operator': handleOperator(value); break;
+      case 'equals': handleEquals(); break;
+      case 'clear': handleClear(); break;
+      case 'backspace': handleBackspace(); break;
+      case 'percent': handlePercent(); break;
+    }
+  } catch (err) {
+    console.warn('[calculator] Button handler error:', err.message);
+    setErrorState('Error');
+    updateDisplay();
   }
 });
 
@@ -532,7 +539,7 @@ historyList.addEventListener('keydown', (e) => {
 
 // Clear history button
 // BUG #2 related: the clear history button works, but the "C" calculator button doesn't clear history
-clearHistoryBtn.addEventListener('click', () => {
+if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', () => {
   history = [];
   saveHistory();
   renderHistory();
@@ -594,7 +601,7 @@ document.addEventListener('keydown', (e) => {
 const displayContainer = document.querySelector('.display');
 function copyResult() {
   const text = currentInput;
-  if (!text || text === '0' || text === 'Error' || text === 'Cannot divide by zero') return;
+  if (!displayContainer || !text || text === '0' || text === 'Error' || text === 'Cannot divide by zero') return;
   function onCopySuccess() {
     displayContainer.classList.add('display-copied');
     setTimeout(() => displayContainer.classList.remove('display-copied'), 1200);
@@ -620,13 +627,15 @@ function copyResult() {
     fallbackCopy();
   }
 }
-displayContainer.addEventListener('click', copyResult);
-displayContainer.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    copyResult();
-  }
-});
+if (displayContainer) {
+  displayContainer.addEventListener('click', copyResult);
+  displayContainer.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      copyResult();
+    }
+  });
+}
 
 renderHistory();
 updateDisplay();
@@ -635,9 +644,14 @@ updateDisplay();
 // Reduces tab stops from 21 to 1 and lets keyboard users navigate
 // buttons with arrow keys matching the visual grid layout.
 (function initGridNav() {
+  try {
   var btnContainer = document.querySelector('.buttons');
-  var utilBtns = Array.from(btnContainer.querySelector('.btn-row-utils').children);
-  var mainBtns = Array.from(btnContainer.querySelector('.btn-row-main').children);
+  if (!btnContainer) return;
+  var utilRow = btnContainer.querySelector('.btn-row-utils');
+  var mainRow = btnContainer.querySelector('.btn-row-main');
+  if (!utilRow || !mainRow) return;
+  var utilBtns = Array.from(utilRow.children);
+  var mainBtns = Array.from(mainRow.children);
 
   // 2D array matching the visual button layout
   var grid = [
@@ -693,4 +707,7 @@ updateDisplay();
       }
     }
   });
+  } catch (e) {
+    console.warn('[calculator] Grid navigation init failed:', e.message);
+  }
 })();
