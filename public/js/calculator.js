@@ -139,6 +139,15 @@ function setErrorState(message) {
   lastExprDisplay = null;
 }
 
+// Begin a new expression, discarding any pending result.
+// Called when the user starts typing after "=" was pressed.
+function startNewEntry(newInput, newExpression) {
+  currentInput = newInput;
+  currentExpression = newExpression || '';
+  lastResult = null;
+  lastExprDisplay = null;
+}
+
 // Track previous display state to skip redundant DOM writes
 let prevDisplayText = null;
 let prevExprText = null;
@@ -273,9 +282,7 @@ function renderHistory() {
 function handleNumber(value) {
   lastExprDisplay = null;
   if (lastResult !== null) {
-    currentInput = value;
-    currentExpression = '';
-    lastResult = null;
+    startNewEntry(value);
   } else if (currentInput === '' && currentExpression.trimEnd().endsWith(')')) {
     // Implicit multiplication after close paren: (3)5 → (3) × 5
     currentExpression += '* ';
@@ -297,9 +304,7 @@ function handleNumber(value) {
 function handleDecimal() {
   lastExprDisplay = null;
   if (lastResult !== null) {
-    currentInput = '0.';
-    currentExpression = '';
-    lastResult = null;
+    startNewEntry('0.');
     announce('0 point');
     updateDisplay();
     return;
@@ -313,9 +318,7 @@ function handleDecimal() {
 
 function handleOpenParen() {
   if (lastResult !== null) {
-    currentInput = '';
-    currentExpression = '( ';
-    lastResult = null;
+    startNewEntry('', '( ');
     announce('open parenthesis');
     updateDisplay();
     return;
