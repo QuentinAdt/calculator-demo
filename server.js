@@ -215,7 +215,6 @@ function minifyJs(js) {
 }
 
 // Cache minified JS files — invalidated by file mtime changes.
-let jsVersions = {};
 let cachedMinifiedJs = {};
 
 function getMinifiedJs(filename) {
@@ -244,15 +243,13 @@ function getMinifiedJs(filename) {
   }
 }
 
-function computeJsVersions() {
-  for (const file of ['calculator.js', 'feedback-loader.js']) {
+function getJsVersionHashes() {
+  const hashes = {};
+  for (const file of JS_FILES) {
     const entry = getMinifiedJs(file);
-    if (entry) {
-      jsVersions[file] = entry.hash;
-    } else {
-      delete jsVersions[file];
-    }
+    if (entry) hashes[file] = entry.hash;
   }
+  return hashes;
 }
 
 function getInlinedHtml() {
@@ -287,8 +284,8 @@ function getInlinedHtml() {
   // Fingerprint JS URLs with content hashes for long-term immutable caching.
   // When auto-updater modifies a file, the mtime change triggers a rebuild
   // and browsers fetch the new version automatically.
-  computeJsVersions();
-  for (const [file, hash] of Object.entries(jsVersions)) {
+  const jsHashes = getJsVersionHashes();
+  for (const [file, hash] of Object.entries(jsHashes)) {
     cachedInlinedHtml = cachedInlinedHtml.replace(
       `/js/${file}`,
       `/js/${file}?v=${hash}`
