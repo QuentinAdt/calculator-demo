@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { gzipSync } from 'zlib';
+import { gzipSync, brotliCompressSync, constants as zlibConstants } from 'zlib';
 import { readFileSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -180,8 +180,15 @@ const JS_DIR = join(__dirname, 'public', 'js');
 const JS_FILES = ['calculator.js', 'feedback-loader.js'];
 let cachedInlinedHtml = null;
 let cachedInlinedHtmlGzip = null;
+let cachedInlinedHtmlBrotli = null;
 let cachedHtmlEtag = null;
 let cachedPreloadHeader = null;
+
+// Brotli compression options — quality 6 balances compression ratio and CPU cost
+// for on-startup pre-compression of cached assets.
+const BROTLI_OPTS = {
+  params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 6 },
+};
 
 // Mtime-based cache invalidation: only re-read and re-minify files when they
 // actually change on disk. statSync is ~0.01ms per call (negligible vs full
@@ -234,14 +241,18 @@ function minifyJs(js) {
     .trim();
 }
 
-// Send pre-compressed content when the client supports gzip, otherwise send plain.
-// Centralises the Content-Encoding / Vary header logic so it stays consistent
-// across all routes that serve pre-compressed payloads (HTML and JS).
-function sendPrecompressed(req, res, contentType, gzipped, plain) {
-  if (gzipped && req.acceptsEncodings('gzip')) {
+// Send pre-compressed content, preferring Brotli over gzip for ~15% smaller
+// payloads. Centralises the Content-Encoding / Vary header logic so it stays
+// consistent across all routes that serve pre-compressed payloads (HTML and JS).
+function sendPrecompressed(req, res, contentType, { brotli, gzip, plain }) {
+  if (brotli && req.acceptsEncodings('br')) {
+    res.set('Content-Encoding', 'br');
+    res.set('Vary', 'Accept-Encoding');
+    res.type(contentType).end(brotli);
+  } else if (gzip && req.acceptsEncodings('gzip')) {
     res.set('Content-Encoding', 'gzip');
     res.set('Vary', 'Accept-Encoding');
-    res.type(contentType).end(gzipped);
+    res.type(contentType).end(gzip);
   } else {
     res.type(contentType).send(plain);
   }
@@ -269,7 +280,8 @@ function getMinifiedJs(filename) {
     const content = minifyJs(raw);
     const hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
     const gzipped = gzipSync(content);
-    const entry = { content, gzipped, hash, time: now, mtime };
+    const brotli = brotliCompressSync(content, BROTLI_OPTS);
+    const entry = { content, gzipped, brotli, hash, time: now, mtime };
     cachedMinifiedJs[filename] = entry;
     return entry;
   } catch (err) {
@@ -330,8 +342,9 @@ function getInlinedHtml() {
   recordMtimes(watchedPaths);
   // Compute ETag from the final HTML content for conditional 304 responses
   cachedHtmlEtag = '"' + crypto.createHash('md5').update(cachedInlinedHtml).digest('hex').slice(0, 16) + '"';
-  // Pre-compress once so every gzip-capable request avoids a per-request zlib pass
+  // Pre-compress once so every request avoids a per-request zlib pass
   cachedInlinedHtmlGzip = gzipSync(cachedInlinedHtml);
+  cachedInlinedHtmlBrotli = brotliCompressSync(cachedInlinedHtml, BROTLI_OPTS);
   // Build Link preload header for the critical JS bundle so the browser begins
   // fetching it as soon as response headers arrive — before HTML body parsing.
   const calcHash = jsHashes['calculator.js'];
@@ -353,7 +366,7 @@ app.get('/js/:file', (req, res) => {
   } else {
     res.set('Cache-Control', 'no-cache');
   }
-  sendPrecompressed(req, res, 'js', entry.gzipped, entry.content);
+  sendPrecompressed(req, res, 'js', { brotli: entry.brotli, gzip: entry.gzipped, plain: entry.content });
 });
 
 // Serve static files with tiered caching:
@@ -402,7 +415,7 @@ app.get('*', (req, res) => {
   res.set('Cache-Control', 'no-cache');
   res.set('ETag', cachedHtmlEtag);
   if (cachedPreloadHeader) res.set('Link', cachedPreloadHeader);
-  sendPrecompressed(req, res, 'html', cachedInlinedHtmlGzip, html);
+  sendPrecompressed(req, res, 'html', { brotli: cachedInlinedHtmlBrotli, gzip: cachedInlinedHtmlGzip, plain: html });
 });
 
 // Global error handler — catches unhandled exceptions in route handlers.
