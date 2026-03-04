@@ -34,6 +34,25 @@ body {
   flex-direction: column;
 }
 
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 100;
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 12px;
+}
+
 /* Header */
 .header {
   border-bottom: 1px solid var(--border);
@@ -380,6 +399,7 @@ body {
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  .skip-link,
   .nav-link,
   .btn,
   .display,
