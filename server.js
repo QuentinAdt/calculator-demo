@@ -223,6 +223,19 @@ function minifyJs(js) {
     .trim();
 }
 
+// Send pre-compressed content when the client supports gzip, otherwise send plain.
+// Centralises the Content-Encoding / Vary header logic so it stays consistent
+// across all routes that serve pre-compressed payloads (HTML and JS).
+function sendPrecompressed(req, res, contentType, gzipped, plain) {
+  if (gzipped && req.acceptsEncodings('gzip')) {
+    res.set('Content-Encoding', 'gzip');
+    res.set('Vary', 'Accept-Encoding');
+    res.type(contentType).end(gzipped);
+  } else {
+    res.type(contentType).send(plain);
+  }
+}
+
 // Cache minified JS files — invalidated by file mtime changes.
 let cachedMinifiedJs = {};
 
@@ -321,14 +334,7 @@ app.get('/js/:file', (req, res) => {
   } else {
     res.set('Cache-Control', 'no-cache');
   }
-  // Serve pre-compressed content to avoid per-request gzip overhead
-  if (entry.gzipped && req.acceptsEncodings('gzip')) {
-    res.set('Content-Encoding', 'gzip');
-    res.set('Vary', 'Accept-Encoding');
-    res.type('js').end(entry.gzipped);
-  } else {
-    res.type('js').send(entry.content);
-  }
+  sendPrecompressed(req, res, 'js', entry.gzipped, entry.content);
 });
 
 // Serve static files with tiered caching:
@@ -376,14 +382,7 @@ app.get('*', (req, res) => {
   }
   res.set('Cache-Control', 'no-cache');
   res.set('ETag', cachedHtmlEtag);
-  // Serve pre-compressed HTML to avoid per-request gzip overhead
-  if (cachedInlinedHtmlGzip && req.acceptsEncodings('gzip')) {
-    res.set('Content-Encoding', 'gzip');
-    res.set('Vary', 'Accept-Encoding');
-    res.type('html').end(cachedInlinedHtmlGzip);
-  } else {
-    res.type('html').send(html);
-  }
+  sendPrecompressed(req, res, 'html', cachedInlinedHtmlGzip, html);
 });
 
 // Global error handler — catches unhandled exceptions in route handlers.
