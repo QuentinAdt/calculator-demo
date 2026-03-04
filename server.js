@@ -261,17 +261,18 @@ function getMinifiedJs(filename) {
   const filePath = join(JS_DIR, filename);
   const now = Date.now();
   const cached = cachedMinifiedJs[filename];
+  let knownMtime;
   if (cached) {
     // Throttle mtime checks to once per second per file
     if (now - cached.time < MTIME_CHECK_MS) return cached;
-    const currentMtime = getFileMtime(filePath);
-    if (cached.mtime === currentMtime) {
+    knownMtime = getFileMtime(filePath);
+    if (cached.mtime === knownMtime) {
       cached.time = now; // reset throttle timer
       return cached;
     }
   }
   try {
-    const mtime = getFileMtime(filePath);
+    const mtime = knownMtime ?? getFileMtime(filePath);
     const raw = readFileSync(filePath, 'utf-8');
     const content = minifyJs(raw);
     const hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
@@ -295,18 +296,18 @@ function getJsVersionHashes() {
   return hashes;
 }
 
-function getInlinedHtml() {
+function getHtmlCache() {
   const now = Date.now();
   // Throttle mtime checks to once per second
   if (htmlCache && now - htmlCache.checkedAt < MTIME_CHECK_MS) {
-    return htmlCache.html;
+    return htmlCache;
   }
   // Watch HTML, CSS, and all JS files — a change to any triggers a rebuild
   // (JS changes affect the version hashes embedded in HTML)
   const watchedPaths = [HTML_PATH, CSS_PATH, ...JS_FILES.map(f => join(JS_DIR, f))];
   if (htmlCache && !haveFilesChanged(watchedPaths)) {
     htmlCache.checkedAt = now;
-    return htmlCache.html;
+    return htmlCache;
   }
   let inlinedHtml;
   try {
@@ -349,7 +350,7 @@ function getInlinedHtml() {
       : null,
     checkedAt: now,
   };
-  return htmlCache.html;
+  return htmlCache;
 }
 
 // Serve minified JS with the same tiered caching strategy as raw files.
@@ -401,19 +402,19 @@ app.get('*', (req, res) => {
   if (/\.\w+$/.test(req.path)) {
     return res.status(404).end();
   }
-  const html = getInlinedHtml();
-  if (!html) {
+  const cache = getHtmlCache();
+  if (!cache) {
     return res.status(503).type('text').send('Service temporarily unavailable');
   }
   // Return 304 Not Modified when the browser's cached copy matches,
   // saving bandwidth (~5-8KB gzipped) on repeat visits.
-  if (htmlCache.etag && req.headers['if-none-match'] === htmlCache.etag) {
+  if (cache.etag && req.headers['if-none-match'] === cache.etag) {
     return res.status(304).end();
   }
   res.set('Cache-Control', 'no-cache');
-  res.set('ETag', htmlCache.etag);
-  if (htmlCache.preloadHeader) res.set('Link', htmlCache.preloadHeader);
-  sendPrecompressed(req, res, 'html', { brotli: htmlCache.brotli, gzip: htmlCache.gzip, plain: html });
+  res.set('ETag', cache.etag);
+  if (cache.preloadHeader) res.set('Link', cache.preloadHeader);
+  sendPrecompressed(req, res, 'html', { brotli: cache.brotli, gzip: cache.gzip, plain: cache.html });
 });
 
 // Global error handler — catches unhandled exceptions in route handlers.
