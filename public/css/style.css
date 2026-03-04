@@ -416,6 +416,38 @@ body {
   }
 }
 
+/* High Contrast Mode — forced-colors strips box-shadow and custom colors,
+   so we use borders, outlines, and border-styles to preserve visual feedback
+   and button-type differentiation. */
+@media (forced-colors: active) {
+  /* Distinguish operator buttons from number buttons via dashed border */
+  .btn-operator {
+    border-style: dashed;
+  }
+  /* Make clear button visually distinct with thicker border */
+  .btn-clear {
+    border-width: 2px;
+  }
+  /* Make equals button prominent with thick border */
+  .btn-equals {
+    border-width: 3px;
+  }
+  /* Keyboard press feedback — box-shadow is stripped, use outline instead */
+  .btn.btn-flash {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+  /* History item reuse feedback — box-shadow is stripped */
+  .history-item.history-item-used {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  /* Copied overlay needs forced-color-adjust to remain visible */
+  .display.display-copied::after {
+    forced-color-adjust: none;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .main { padding-top: 16px; padding-bottom: 16px; }
