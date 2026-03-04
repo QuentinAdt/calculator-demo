@@ -64,6 +64,16 @@ function detectDangerousPatterns(code) {
     // Navigation/redirects
     [/(?:window|document)\.location\s*=/, 'page redirect'],
     [/\blocation\.(?:href|replace|assign)\s*[=(]/, 'page redirect'],
+
+    // Bracket-notation bypasses — catches obj['eval'], window["fetch"], etc.
+    // that evade the word-boundary checks above
+    [/\[\s*['"`](eval|fetch|XMLHttpRequest|WebSocket|Function|cookie|innerHTML|outerHTML|sendBeacon|EventSource)\s*['"`]\s*\]/, 'bracket notation access to dangerous API'],
+
+    // Indirect eval — (0,eval)('code') is a common sandbox escape technique
+    [/\(\s*\d+\s*,\s*eval\s*\)\s*\(/, 'indirect eval invocation'],
+
+    // Function constructor — ''.constructor.constructor('code') or [].constructor.constructor(...)
+    [/\.constructor\s*\(\s*['"`]/, 'Function constructor with string argument'],
   ];
 
   for (const [regex, label] of patterns) {
