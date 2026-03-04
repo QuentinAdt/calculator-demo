@@ -272,7 +272,7 @@ body {
   align-items: center;
   margin-bottom: 16px;
 }
-.history-header h3 {
+.history-header h2 {
   font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 600;
@@ -356,7 +356,7 @@ body {
   border-radius: var(--radius);
   padding: 24px;
 }
-.info-card h3 {
+.info-card h2 {
   font-size: 1rem;
   margin-bottom: 8px;
 }
