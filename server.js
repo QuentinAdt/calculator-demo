@@ -356,19 +356,30 @@ function getHtmlCache() {
       `/js/${file}?v=${hash}`
     );
   }
-  recordMtimes(watchedPaths);
-  // Build cache atomically — prevents partial state if a step (e.g. compression) throws
-  const calcHash = jsHashes['calculator.js'];
-  htmlCache = {
-    html: inlinedHtml,
-    etag: '"' + crypto.createHash('md5').update(inlinedHtml).digest('hex').slice(0, 16) + '"',
-    gzip: gzipSync(inlinedHtml),
-    brotli: brotliCompressSync(inlinedHtml, BROTLI_OPTS),
-    preloadHeader: calcHash
-      ? `</js/calculator.js?v=${calcHash}>; rel=preload; as=script`
-      : null,
-    checkedAt: now,
-  };
+  // Build cache atomically — wrap in try/catch so compression or hashing
+  // failures don't take down the page-serving route.
+  try {
+    const calcHash = jsHashes['calculator.js'];
+    htmlCache = {
+      html: inlinedHtml,
+      etag: '"' + crypto.createHash('md5').update(inlinedHtml).digest('hex').slice(0, 16) + '"',
+      gzip: gzipSync(inlinedHtml),
+      brotli: brotliCompressSync(inlinedHtml, BROTLI_OPTS),
+      preloadHeader: calcHash
+        ? `</js/calculator.js?v=${calcHash}>; rel=preload; as=script`
+        : null,
+      checkedAt: now,
+    };
+    // Record mtimes only after successful rebuild — avoids marking files as
+    // "seen" when the cache wasn't actually updated, which would suppress
+    // rebuild retries and leave stale content stuck.
+    recordMtimes(watchedPaths);
+  } catch (err) {
+    console.error('[server] HTML cache rebuild failed (compression/hashing):', err.message);
+    // Serve stale cache if available — callers handle null via 503 response
+    if (htmlCache) htmlCache.checkedAt = now;
+    return htmlCache;
+  }
   return htmlCache;
 }
 
