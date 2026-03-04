@@ -1,6 +1,7 @@
 import express from 'express';
 import compression from 'compression';
 import crypto from 'crypto';
+import { gzipSync } from 'zlib';
 import { readFileSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -164,6 +165,7 @@ const CSS_PATH = join(__dirname, 'public', 'css', 'style.css');
 const JS_DIR = join(__dirname, 'public', 'js');
 const JS_FILES = ['calculator.js', 'feedback-loader.js'];
 let cachedInlinedHtml = null;
+let cachedInlinedHtmlGzip = null;
 let cachedHtmlEtag = null;
 
 // Mtime-based cache invalidation: only re-read and re-minify files when they
@@ -235,7 +237,8 @@ function getMinifiedJs(filename) {
     const raw = readFileSync(filePath, 'utf-8');
     const content = minifyJs(raw);
     const hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
-    const entry = { content, hash, time: now, mtime };
+    const gzipped = gzipSync(content);
+    const entry = { content, gzipped, hash, time: now, mtime };
     cachedMinifiedJs[filename] = entry;
     return entry;
   } catch {
@@ -294,6 +297,8 @@ function getInlinedHtml() {
   recordMtimes(watchedPaths);
   // Compute ETag from the final HTML content for conditional 304 responses
   cachedHtmlEtag = '"' + crypto.createHash('md5').update(cachedInlinedHtml).digest('hex').slice(0, 16) + '"';
+  // Pre-compress once so every gzip-capable request avoids a per-request zlib pass
+  cachedInlinedHtmlGzip = gzipSync(cachedInlinedHtml);
   return cachedInlinedHtml;
 }
 
@@ -309,7 +314,14 @@ app.get('/js/:file', (req, res) => {
   } else {
     res.set('Cache-Control', 'no-cache');
   }
-  res.type('js').send(entry.content);
+  // Serve pre-compressed content to avoid per-request gzip overhead
+  if (entry.gzipped && req.acceptsEncodings('gzip')) {
+    res.set('Content-Encoding', 'gzip');
+    res.set('Vary', 'Accept-Encoding');
+    res.type('js').end(entry.gzipped);
+  } else {
+    res.type('js').send(entry.content);
+  }
 });
 
 // Serve static files with tiered caching:
@@ -357,7 +369,14 @@ app.get('*', (req, res) => {
   }
   res.set('Cache-Control', 'no-cache');
   res.set('ETag', cachedHtmlEtag);
-  res.type('html').send(html);
+  // Serve pre-compressed HTML to avoid per-request gzip overhead
+  if (cachedInlinedHtmlGzip && req.acceptsEncodings('gzip')) {
+    res.set('Content-Encoding', 'gzip');
+    res.set('Vary', 'Accept-Encoding');
+    res.type('html').end(cachedInlinedHtmlGzip);
+  } else {
+    res.type('html').send(html);
+  }
 });
 
 // Global error handler — catches unhandled exceptions in route handlers.
