@@ -181,6 +181,7 @@ const JS_FILES = ['calculator.js', 'feedback-loader.js'];
 let cachedInlinedHtml = null;
 let cachedInlinedHtmlGzip = null;
 let cachedHtmlEtag = null;
+let cachedPreloadHeader = null;
 
 // Mtime-based cache invalidation: only re-read and re-minify files when they
 // actually change on disk. statSync is ~0.01ms per call (negligible vs full
@@ -331,6 +332,12 @@ function getInlinedHtml() {
   cachedHtmlEtag = '"' + crypto.createHash('md5').update(cachedInlinedHtml).digest('hex').slice(0, 16) + '"';
   // Pre-compress once so every gzip-capable request avoids a per-request zlib pass
   cachedInlinedHtmlGzip = gzipSync(cachedInlinedHtml);
+  // Build Link preload header for the critical JS bundle so the browser begins
+  // fetching it as soon as response headers arrive — before HTML body parsing.
+  const calcHash = jsHashes['calculator.js'];
+  cachedPreloadHeader = calcHash
+    ? `</js/calculator.js?v=${calcHash}>; rel=preload; as=script`
+    : null;
   return cachedInlinedHtml;
 }
 
@@ -394,6 +401,7 @@ app.get('*', (req, res) => {
   }
   res.set('Cache-Control', 'no-cache');
   res.set('ETag', cachedHtmlEtag);
+  if (cachedPreloadHeader) res.set('Link', cachedPreloadHeader);
   sendPrecompressed(req, res, 'html', cachedInlinedHtmlGzip, html);
 });
 
