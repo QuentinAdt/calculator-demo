@@ -130,6 +130,15 @@ function friendlyOperators(str) {
 // Spoken names for operators — used by screen reader announcements
 const spokenOperators = { '+': 'plus', '-': 'minus', '*': 'times', '/': 'divided by' };
 
+// Temporarily flash a CSS class on an element for visual feedback.
+// Clears any pending flash timer to handle rapid successive triggers.
+function flashClass(element, className, durationMs) {
+  if (!element) return;
+  clearTimeout(element._flashTimer);
+  element.classList.add(className);
+  element._flashTimer = setTimeout(() => element.classList.remove(className), durationMs);
+}
+
 const MAX_HISTORY = 50;
 const MAX_INPUT_LENGTH = 15; // Cap manual input to stay within JS Number precision
 const DISPLAY_PRECISION = 12; // Significant digits for displayed results (see also safeEval's 14-digit intermediate rounding)
@@ -583,9 +592,7 @@ historyList.addEventListener('click', (e) => {
       : null;
   }
   // Flash the clicked item to confirm the reuse action
-  clearTimeout(item._flashTimer);
-  item.classList.add('history-item-used');
-  item._flashTimer = setTimeout(() => item.classList.remove('history-item-used'), 400);
+  flashClass(item, 'history-item-used', 400);
   announce('Reused result ' + formatNumber(result));
   updateDisplay();
 });
@@ -621,9 +628,7 @@ document.querySelectorAll('.btn').forEach(btn => {
 function flashButton(action, value) {
   const btn = buttonCache.get(value != null ? action + ':' + value : action);
   if (!btn) return;
-  clearTimeout(btn._flashTimer);
-  btn.classList.add('btn-flash');
-  btn._flashTimer = setTimeout(() => btn.classList.remove('btn-flash'), 150);
+  flashClass(btn, 'btn-flash', 150);
 }
 
 // Keyboard-to-calculator mapping — declarative table replaces verbose if-else chain.
@@ -673,8 +678,7 @@ function copyResult() {
   const text = currentInput;
   if (!displayContainer || !text || text === '0' || text === 'Error' || text === 'Cannot divide by zero') return;
   function onCopySuccess() {
-    displayContainer.classList.add('display-copied');
-    setTimeout(() => displayContainer.classList.remove('display-copied'), 1200);
+    flashClass(displayContainer, 'display-copied', 1200);
     announce('Copied ' + formatNumber(text) + ' to clipboard');
   }
   function fallbackCopy() {
