@@ -625,3 +625,67 @@ displayContainer.addEventListener('keydown', (e) => {
 
 renderHistory();
 updateDisplay();
+
+// ── Arrow-key grid navigation (roving tabindex) ─────────────────────
+// Reduces tab stops from 21 to 1 and lets keyboard users navigate
+// buttons with arrow keys matching the visual grid layout.
+(function initGridNav() {
+  var btnContainer = document.querySelector('.buttons');
+  var utilBtns = Array.from(btnContainer.querySelector('.btn-row-utils').children);
+  var mainBtns = Array.from(btnContainer.querySelector('.btn-row-main').children);
+
+  // 2D array matching the visual button layout
+  var grid = [
+    utilBtns,                // C  ⌫  %  (  )
+    mainBtns.slice(0, 4),   // 7  8  9  ÷
+    mainBtns.slice(4, 8),   // 4  5  6  ×
+    mainBtns.slice(8, 12),  // 1  2  3  −
+    mainBtns.slice(12, 16), // 0  .  =  +
+  ];
+
+  var row = 0, col = 0;
+
+  // All buttons tabindex=-1 except the initial active one
+  grid.forEach(function(r) { r.forEach(function(b) { b.setAttribute('tabindex', '-1'); }); });
+  grid[row][col].setAttribute('tabindex', '0');
+
+  function moveTo(r, c) {
+    grid[row][col].setAttribute('tabindex', '-1');
+    row = r;
+    col = c;
+    grid[row][col].setAttribute('tabindex', '0');
+    grid[row][col].focus();
+  }
+
+  btnContainer.addEventListener('keydown', function(e) {
+    var r = row, c = col;
+    switch (e.key) {
+      case 'ArrowRight': c = (col + 1) % grid[row].length; break;
+      case 'ArrowLeft':  c = (col - 1 + grid[row].length) % grid[row].length; break;
+      case 'ArrowDown':  r = (row + 1) % grid.length; c = Math.min(col, grid[r].length - 1); break;
+      case 'ArrowUp':    r = (row - 1 + grid.length) % grid.length; c = Math.min(col, grid[r].length - 1); break;
+      case 'Home':       c = 0; break;
+      case 'End':        c = grid[row].length - 1; break;
+      default: return;
+    }
+    e.preventDefault();
+    if (r !== row || c !== col) moveTo(r, c);
+  });
+
+  // Sync active cell when a button receives focus via click or other means
+  btnContainer.addEventListener('focusin', function(e) {
+    var btn = e.target.closest('.btn');
+    if (!btn) return;
+    for (var r = 0; r < grid.length; r++) {
+      var c = grid[r].indexOf(btn);
+      if (c !== -1) {
+        if (r !== row || c !== col) {
+          grid[row][col].setAttribute('tabindex', '-1');
+          row = r; col = c;
+          btn.setAttribute('tabindex', '0');
+        }
+        return;
+      }
+    }
+  });
+})();
