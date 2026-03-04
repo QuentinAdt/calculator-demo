@@ -113,6 +113,14 @@ setInterval(() => {
 
 // Webhook endpoint
 app.post('/api/webhook', webhookRateLimit, (req, res) => {
+  // Reject all requests when WEBHOOK_SECRET is not configured — without a valid
+  // secret the HMAC check below cannot authenticate anything.  This prevents
+  // crypto.createHmac from throwing on `undefined` and guards against an empty-
+  // string secret that would let anyone forge a valid signature.
+  if (!WEBHOOK_SECRET) {
+    return res.status(401).json({ error: 'Webhook authentication not configured' });
+  }
+
   // IP whitelist — use only req.ip (respects Express trust proxy setting) or
   // direct socket address; never trust the user-controlled X-Forwarded-For header
   const clientIp = req.ip || req.connection.remoteAddress;
