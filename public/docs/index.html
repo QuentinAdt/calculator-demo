@@ -27,6 +27,7 @@
     .updated { color: var(--muted); font-size: 0.85rem; margin-bottom: 24px; }
     .back { display: inline-block; margin-bottom: 20px; color: var(--accent); text-decoration: none; font-size: 0.9rem; }
     .back:hover { text-decoration: underline; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   </style>
 </head>
 <body>
@@ -102,7 +103,7 @@
   </table>
 
   <h2>Integration</h2>
-  <p>This calculator integrates with <a href="https://feedbackloopai.ovh" target="_blank">FeedbackLoop AI</a> for automated bug reporting and feature requests. The feedback widget collects user reports, qualifies them with AI, and triggers an autonomous fix pipeline.</p>
+  <p>This calculator integrates with <a href="https://feedbackloopai.ovh" target="_blank" rel="noopener noreferrer">FeedbackLoop AI<span class="sr-only"> (opens in new tab)</span></a> for automated bug reporting and feature requests. The feedback widget collects user reports, qualifies them with AI, and triggers an autonomous fix pipeline.</p>
 
 </body>
 </html>

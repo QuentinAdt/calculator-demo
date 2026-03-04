@@ -376,6 +376,21 @@ body {
 }
 .footer a:hover { text-decoration: underline; }
 
+/* External link indicator for target="_blank" links */
+a[target="_blank"]::after {
+  content: "";
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-left: 0.25em;
+  vertical-align: baseline;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M9 2h5v5l-2-2-4 4-2-2 4-4zm4 8v4H2V3h4' fill='none' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat center;
+  mask-size: contain;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M9 2h5v5l-2-2-4 4-2-2 4-4zm4 8v4H2V3h4' fill='none' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: contain;
+}
+
 /* Keyboard flash — brief highlight when a calculator key is pressed.
    Uses inset box-shadow instead of filter:brightness() to avoid expensive
    offscreen-buffer rasterization on every keypress. */
