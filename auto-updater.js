@@ -242,8 +242,20 @@ async function generatePatch(prompt, currentCode, apiKey) {
       return null;
     }
 
-    const data = await response.json();
-    let code = data.choices?.[0]?.message?.content || '';
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      console.error(`[auto-updater] AI API returned non-JSON response (HTTP ${response.status}): ${parseErr.message}`);
+      return null;
+    }
+
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      console.error('[auto-updater] AI response missing choices content:', JSON.stringify(data).slice(0, 200));
+      return null;
+    }
+    let code = content;
 
     // Strip markdown fencing if AI added it despite instructions
     code = code.replace(/^```(?:javascript|js)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
