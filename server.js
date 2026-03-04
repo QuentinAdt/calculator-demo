@@ -9,6 +9,12 @@ import { handleWebhook } from './auto-updater.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Extract stack trace from Error instances, pass through plain values unchanged.
+// Used across all error handlers to avoid repeating the instanceof check.
+function errorDetail(err) {
+  return err instanceof Error ? err.stack : err;
+}
+
 // Load .env manually (no dotenv dependency)
 try {
   const envContent = readFileSync(join(__dirname, '.env'), 'utf-8');
@@ -178,7 +184,7 @@ app.post('/api/webhook', webhookRateLimit, (req, res) => {
 
   // Process asynchronously
   handleWebhook(req.body).catch(err => {
-    console.error('[webhook] Processing error:', err instanceof Error ? err.stack : err);
+    console.error('[webhook] Processing error:', errorDetail(err));
   });
 });
 
@@ -441,7 +447,7 @@ app.use((err, req, res, _next) => {
     : 500;
 
   if (status >= 500) {
-    console.error('[server] Unhandled error:', err instanceof Error ? err.stack : err);
+    console.error('[server] Unhandled error:', errorDetail(err));
     res.status(status).type('text').send('Internal server error');
   } else {
     // Client errors (4xx) from middleware (e.g. malformed JSON, oversized payload)
@@ -455,14 +461,14 @@ app.use((err, req, res, _next) => {
 // Catch unhandled promise rejections to prevent silent process crashes
 // (e.g. from async webhook processing or other background tasks)
 process.on('unhandledRejection', (reason) => {
-  console.error('[server] Unhandled promise rejection:', reason instanceof Error ? reason.stack : reason);
+  console.error('[server] Unhandled promise rejection:', errorDetail(reason));
 });
 
 // Catch uncaught synchronous exceptions that occur outside Express route handlers
 // (e.g. in setInterval callbacks, event emitters). Log before exiting so the error
 // is visible in monitoring rather than silently crashing.
 process.on('uncaughtException', (err) => {
-  console.error('[server] Uncaught exception — shutting down:', err instanceof Error ? err.stack : err);
+  console.error('[server] Uncaught exception — shutting down:', errorDetail(err));
   process.exit(1);
 });
 
