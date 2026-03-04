@@ -38,6 +38,10 @@ const ALLOWED_IPS = (process.env.ALLOWED_WEBHOOK_IPS || '116.202.8.41').split(',
 
 const app = express();
 
+// Suppress the default X-Powered-By header so the server does not advertise
+// its technology stack, reducing information available to attackers.
+app.disable('x-powered-by');
+
 // Feedback widget origin — used in CSP to allow the lazy-loaded widget to function
 const WIDGET_ORIGIN = 'https://*.feedbackloopai.ovh';
 
@@ -48,6 +52,7 @@ app.use((req, res, next) => {
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Cross-Origin-Opener-Policy': 'same-origin',
     'Content-Security-Policy': [
       "default-src 'self'",
       `script-src 'self' ${WIDGET_ORIGIN}`,
@@ -58,6 +63,7 @@ app.use((req, res, next) => {
       "font-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
+      "form-action 'self'",
     ].join('; '),
   });
   next();
