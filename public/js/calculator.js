@@ -4,7 +4,7 @@
  * INTENTIONAL BUGS (for demo purposes):
  * 1. (FIXED) Division by zero now shows "Cannot divide by zero" instead of "NaN"/"Infinity"
  * 2. "C" button does NOT clear the history
- * 3. (FIXED) Floating-point imprecision — results now rounded to 12 significant digits
+ * 3. (FIXED) Floating-point imprecision — results now rounded to DISPLAY_PRECISION significant digits
  *
  * MISSING FEATURES (for feature requests):
  * - No dark/light theme toggle (always dark)
@@ -116,6 +116,13 @@ const spokenOperators = { '+': 'plus', '-': 'minus', '*': 'times', '/': 'divided
 
 const MAX_HISTORY = 50;
 const MAX_INPUT_LENGTH = 15; // Cap manual input to stay within JS Number precision
+const DISPLAY_PRECISION = 12; // Significant digits for displayed results (see also safeEval's 14-digit intermediate rounding)
+
+// Round a numeric result to display precision, stripping IEEE 754 floating-point artifacts.
+// e.g. 0.30000000000000004 → 0.3
+function roundResult(n) {
+  return parseFloat(n.toPrecision(DISPLAY_PRECISION));
+}
 
 let currentInput = '0';
 let currentExpression = '';
@@ -188,7 +195,7 @@ function updateDisplay() {
     try {
       const result = safeEval(currentExpression + currentInput);
       if (isFinite(result)) {
-        exprText = currentExpression + currentInput + ' = ' + parseFloat(result.toPrecision(12));
+        exprText = currentExpression + currentInput + ' = ' + roundResult(result);
       }
     } catch (e) { /* expression not yet complete, skip preview */ }
   } else if (lastExprDisplay) {
@@ -394,9 +401,7 @@ function handleEquals() {
       return;
     }
 
-    // Round to 12 significant digits to eliminate IEEE 754 floating-point artifacts
-    // e.g. 0.1 + 0.2 now correctly displays 0.3 instead of 0.30000000000000004
-    const cleaned = parseFloat(result.toPrecision(12));
+    const cleaned = roundResult(result);
     const displayResult = String(cleaned);
 
     currentInput = displayResult;
@@ -451,7 +456,7 @@ function handlePercent() {
       try {
         const base = safeEval(trimmed.slice(0, -1).trim());
         if (isFinite(base)) {
-          currentInput = String(parseFloat((base * num / 100).toPrecision(12)));
+          currentInput = String(roundResult(base * num / 100));
           lastResult = null;
           announce(formatNumber(currentInput));
           updateDisplay();
@@ -461,7 +466,7 @@ function handlePercent() {
     }
   }
 
-  currentInput = String(parseFloat((num / 100).toPrecision(12)));
+  currentInput = String(roundResult(num / 100));
   lastResult = null;
   announce(formatNumber(currentInput));
   updateDisplay();
