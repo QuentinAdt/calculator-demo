@@ -109,6 +109,9 @@ function detectDangerousPatterns(code) {
     [/\.outerHTML\s*=/, 'unsafe DOM mutation (outerHTML)'],
     [/\bdocument\.write\s*\(/, 'unsafe DOM mutation (document.write)'],
     [/\bcreateElement\s*\(\s*['"`]script['"`]\s*\)/, 'script element creation'],
+    [/\.insertAdjacentHTML\s*\(/, 'unsafe DOM mutation (insertAdjacentHTML)'],
+    [/\bcreateContextualFragment\s*\(/, 'unsafe DOM mutation (createContextualFragment)'],
+    [/\bDOMParser\b/, 'HTML parsing (DOMParser)'],
 
     // Cookie access — calculator does not use cookies
     [/\bdocument\.cookie\b/, 'cookie access'],
@@ -119,10 +122,17 @@ function detectDangerousPatterns(code) {
     // Navigation/redirects
     [/(?:window|document)\.location\s*=/, 'page redirect'],
     [/\blocation\.(?:href|replace|assign)\s*[=(]/, 'page redirect'],
+    [/\bwindow\.open\s*\(/, 'window.open (exfiltration vector)'],
+
+    // Background execution contexts — calculator has no need for workers
+    [/\bnew\s+Worker\s*\(/, 'Worker creation'],
+    [/\bnew\s+SharedWorker\s*\(/, 'SharedWorker creation'],
+    [/\bnavigator\.serviceWorker\b/, 'ServiceWorker access'],
+    [/\bimportScripts\s*\(/, 'importScripts (external code loading)'],
 
     // Bracket-notation bypasses — catches obj['eval'], window["fetch"], etc.
     // that evade the word-boundary checks above
-    [/\[\s*['"`](eval|fetch|XMLHttpRequest|WebSocket|Function|cookie|innerHTML|outerHTML|sendBeacon|EventSource)\s*['"`]\s*\]/, 'bracket notation access to dangerous API'],
+    [/\[\s*['"`](eval|fetch|XMLHttpRequest|WebSocket|Function|cookie|innerHTML|outerHTML|insertAdjacentHTML|sendBeacon|EventSource|open|DOMParser|serviceWorker)\s*['"`]\s*\]/, 'bracket notation access to dangerous API'],
 
     // Indirect eval — (0,eval)('code') is a common sandbox escape technique
     [/\(\s*\d+\s*,\s*eval\s*\)\s*\(/, 'indirect eval invocation'],
