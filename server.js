@@ -178,11 +178,9 @@ const HTML_PATH = join(__dirname, 'public', 'index.html');
 const CSS_PATH = join(__dirname, 'public', 'css', 'style.css');
 const JS_DIR = join(__dirname, 'public', 'js');
 const JS_FILES = ['calculator.js', 'feedback-loader.js'];
-let cachedInlinedHtml = null;
-let cachedInlinedHtmlGzip = null;
-let cachedInlinedHtmlBrotli = null;
-let cachedHtmlEtag = null;
-let cachedPreloadHeader = null;
+// Grouped HTML cache — all fields are computed together and invalidated atomically.
+// { html, gzip, brotli, etag, preloadHeader, checkedAt }
+let htmlCache = null;
 
 // Brotli compression options — quality 6 balances compression ratio and CPU cost
 // for on-startup pre-compression of cached assets.
@@ -194,7 +192,6 @@ const BROTLI_OPTS = {
 // actually change on disk. statSync is ~0.01ms per call (negligible vs full
 // file reads + minification), and is throttled to at most once per second.
 const MTIME_CHECK_MS = 1000;
-let lastMtimeCheck = 0;
 let cachedMtimes = {};
 
 function getFileMtime(filePath) {
@@ -302,28 +299,29 @@ function getJsVersionHashes() {
 function getInlinedHtml() {
   const now = Date.now();
   // Throttle mtime checks to once per second
-  if (cachedInlinedHtml && now - lastMtimeCheck < MTIME_CHECK_MS) {
-    return cachedInlinedHtml;
+  if (htmlCache && now - htmlCache.checkedAt < MTIME_CHECK_MS) {
+    return htmlCache.html;
   }
-  lastMtimeCheck = now;
   // Watch HTML, CSS, and all JS files — a change to any triggers a rebuild
   // (JS changes affect the version hashes embedded in HTML)
   const watchedPaths = [HTML_PATH, CSS_PATH, ...JS_FILES.map(f => join(JS_DIR, f))];
-  if (cachedInlinedHtml && !haveFilesChanged(watchedPaths)) {
-    return cachedInlinedHtml;
+  if (htmlCache && !haveFilesChanged(watchedPaths)) {
+    htmlCache.checkedAt = now;
+    return htmlCache.html;
   }
+  let inlinedHtml;
   try {
-    const html = readFileSync(HTML_PATH, 'utf-8');
+    const rawHtml = readFileSync(HTML_PATH, 'utf-8');
     try {
       const css = readFileSync(CSS_PATH, 'utf-8');
-      cachedInlinedHtml = html.replace(
+      inlinedHtml = rawHtml.replace(
         '<link rel="stylesheet" href="/css/style.css">',
         `<style>${minifyCss(css)}</style>`
       );
     } catch (err) {
       // CSS read failed — serve raw HTML (browser will fetch stylesheet separately)
       console.warn('[server] CSS inlining failed, falling back to external stylesheet:', err.message);
-      cachedInlinedHtml = html;
+      inlinedHtml = rawHtml;
     }
   } catch (err) {
     console.error('[server] Failed to read index.html:', err.message);
@@ -334,24 +332,25 @@ function getInlinedHtml() {
   // and browsers fetch the new version automatically.
   const jsHashes = getJsVersionHashes();
   for (const [file, hash] of Object.entries(jsHashes)) {
-    cachedInlinedHtml = cachedInlinedHtml.replace(
+    inlinedHtml = inlinedHtml.replace(
       `/js/${file}`,
       `/js/${file}?v=${hash}`
     );
   }
   recordMtimes(watchedPaths);
-  // Compute ETag from the final HTML content for conditional 304 responses
-  cachedHtmlEtag = '"' + crypto.createHash('md5').update(cachedInlinedHtml).digest('hex').slice(0, 16) + '"';
-  // Pre-compress once so every request avoids a per-request zlib pass
-  cachedInlinedHtmlGzip = gzipSync(cachedInlinedHtml);
-  cachedInlinedHtmlBrotli = brotliCompressSync(cachedInlinedHtml, BROTLI_OPTS);
-  // Build Link preload header for the critical JS bundle so the browser begins
-  // fetching it as soon as response headers arrive — before HTML body parsing.
+  // Build cache atomically — prevents partial state if a step (e.g. compression) throws
   const calcHash = jsHashes['calculator.js'];
-  cachedPreloadHeader = calcHash
-    ? `</js/calculator.js?v=${calcHash}>; rel=preload; as=script`
-    : null;
-  return cachedInlinedHtml;
+  htmlCache = {
+    html: inlinedHtml,
+    etag: '"' + crypto.createHash('md5').update(inlinedHtml).digest('hex').slice(0, 16) + '"',
+    gzip: gzipSync(inlinedHtml),
+    brotli: brotliCompressSync(inlinedHtml, BROTLI_OPTS),
+    preloadHeader: calcHash
+      ? `</js/calculator.js?v=${calcHash}>; rel=preload; as=script`
+      : null,
+    checkedAt: now,
+  };
+  return htmlCache.html;
 }
 
 // Serve minified JS with the same tiered caching strategy as raw files.
@@ -409,13 +408,13 @@ app.get('*', (req, res) => {
   }
   // Return 304 Not Modified when the browser's cached copy matches,
   // saving bandwidth (~5-8KB gzipped) on repeat visits.
-  if (cachedHtmlEtag && req.headers['if-none-match'] === cachedHtmlEtag) {
+  if (htmlCache.etag && req.headers['if-none-match'] === htmlCache.etag) {
     return res.status(304).end();
   }
   res.set('Cache-Control', 'no-cache');
-  res.set('ETag', cachedHtmlEtag);
-  if (cachedPreloadHeader) res.set('Link', cachedPreloadHeader);
-  sendPrecompressed(req, res, 'html', { brotli: cachedInlinedHtmlBrotli, gzip: cachedInlinedHtmlGzip, plain: html });
+  res.set('ETag', htmlCache.etag);
+  if (htmlCache.preloadHeader) res.set('Link', htmlCache.preloadHeader);
+  sendPrecompressed(req, res, 'html', { brotli: htmlCache.brotli, gzip: htmlCache.gzip, plain: html });
 });
 
 // Global error handler — catches unhandled exceptions in route handlers.
